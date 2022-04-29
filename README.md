@@ -6,7 +6,7 @@ Contributors: Daniel Huang, Ruth-Ann Armstrong, Radhika Kapoor
 
 1. Git clone repo from github
 2. Download dataset from google drive
-3. Unpack the files into `../dataset`
+3. Unpack the files into `../dataset` (One layer outside of the folder containing this repo)
 4. Delete any remaining .zip files containing the dataset
 
 If things are set up correctly, there the dataset should not be included in `git status`.
