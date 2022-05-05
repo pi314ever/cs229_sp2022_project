@@ -1,2 +1,5 @@
 # Dataset not to be included in the github repo
 # Add any files related to the dataset to this gitignore list.
+
+# Ignore python cache files
+__pycache__
