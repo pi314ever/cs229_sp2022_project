@@ -8,23 +8,38 @@ import numpy as np
 #   sigmoid(): Computes the element-wise sigmoid for an nd array.
 #***
 
-def softmax(x, ax=0):
+import logging, sys # For debugging purposes
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
+logging.basicConfig(format=FORMAT, stream=sys.stderr)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+def softmax(x, ax=1, debug=False):
     """
-    Compute softmax function for a batch of input values.
-    The first dimension of the input corresponds to the batch size. The second dimension
-    corresponds to every class in the output. When implementing softmax, you should be careful
-    to only sum over the second dimension.
+    Compute softmax function for a batch of input values with overflow protection.
 
     Args:
-        x: A 2d numpy float array of shape batch_size x number_of_classes
+        x:  A 2d numpy float array of shape (n x m)
+        ax: Axis which indexes the batches (i.e. ax = 1 means the softmax is row-wise)
 
     Returns:
-        A 2d numpy float array containing the softmax results of shape batch_size x number_of_classes
+        A 2d numpy float array containing the softmax results (n x m)
     """
-    x_max = np.max(x.T, axis=0)
-    den = np.sum(np.exp(x.T - x_max), axis=ax)
-    result = np.exp(x.T - x_max.T) / den
-    return result.T
+    # 2d array
+    assert(len(x.shape) == 2)
+    if ax:
+        x = x.T
+    if debug:
+        logger.debug(f'Shape of x {x.shape}')
+    x_max = np.max(x, axis=0)
+    if debug:
+        logger.debug(f'Shape of xmax {x_max.shape}')
+    den = np.sum(np.exp(x - x_max), axis=0)
+    result = np.exp(x - x_max) / den
+    assert(result.shape == x.shape)
+    if ax:
+        result = result.T
+    return result
 
 def sigmoid(x):
     """
