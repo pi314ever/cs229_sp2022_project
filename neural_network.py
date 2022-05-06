@@ -279,7 +279,7 @@ if __name__ == '__main__':
     matrix = matrix[perm, :].squeeze()
     levels = levels[perm, :].squeeze()
     # Train nn
-    nn = two_layer_neural_network(len(word_dict), 1, len(unique_levels), verbose=True)
+    nn = two_layer_neural_network(len(word_dict), 10, len(unique_levels), verbose=True)
     print(matrix.shape, levels.shape)
     train_data = matrix[:int(n * 0.6), :]
     train_levels = levels[:int(n * 0.6), :]
