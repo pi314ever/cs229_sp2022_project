@@ -15,11 +15,11 @@ If things are set up correctly, there the dataset should not be included in `git
 
 ## TODO list
 
-- [ ] Complete neural network class (Daniel)
-  - [ ] fit()
-  - [ ] forward_prop()
-  - [ ] backward_prop()
-  - [ ] predict()
+- [x] Complete neural network class (Daniel)
+  - [x] fit()
+  - [x] forward_prop()
+  - [x] backward_prop()
+  - [x] predict()
 - [ ] Write basic neural network test
 - [ ] Process dataset
   - [ ] Create class for each book containing attributes:
