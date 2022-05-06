@@ -1,3 +1,4 @@
+from enum import unique
 import numpy as np
 from time import time
 import re
@@ -158,6 +159,11 @@ class two_layer_neural_network(util.model):
         else:
             return cost_train, accuracy_train
     def accuracy(self, output, labels):
+        # print(output, labels)
+        print(np.argmax(output, axis=1))
+        print(np.argmax(labels, axis=1))
+        print(np.argmax(output, axis=1)[0] == np.argmax(output, axis=1)[0])
+        print(labels.shape[0])
         return sum(np.argmax(output, axis=1) == np.argmax(output, axis=1)) * 1. / labels.shape[0]
     def gradient_descent_epoch(self, data, labels, learning_rate, batch_size):
         self.is_valid(data, labels)
@@ -255,23 +261,25 @@ if __name__ == '__main__':
     text_data = np.array(valid_data['page_text'])
     level = np.array(valid_data['level'])
     n = len(level)
-    unique_levels = set(level)
+    unique_levels = list(set(level))
+    unique_levels.sort()
     level_map = dict()
     for i, letter in enumerate(unique_levels):
         level_map[letter] = i
     levels = np.zeros((n, len(level_map)))
     for i  in range(n):
-        levels[i, level_map[level[i]]] = 1
+        levels[i, level_map[level[i]]] = 1.
     word_dict = util.word_dict(text_data)
     matrix = util.word_mat(text_data, word_dict)
     # print(matrix)
     # Shuffle data
     # Shuffle training data
+    np.random.seed(100)
     perm = np.random.shuffle(np.arange(text_data.shape[0]))
     matrix = matrix[perm, :].squeeze()
     levels = levels[perm, :].squeeze()
     # Train nn
-    nn = two_layer_neural_network(len(word_dict), 15, len(unique_levels), verbose=True)
+    nn = two_layer_neural_network(len(word_dict), 1, len(unique_levels), verbose=True)
     print(matrix.shape, levels.shape)
     train_data = matrix[:int(n * 0.6), :]
     train_levels = levels[:int(n * 0.6), :]
@@ -279,10 +287,15 @@ if __name__ == '__main__':
     test_levels = levels[int(n * 0.6) + 1:, :]
     print(train_data.shape, train_levels.shape)
     print(test_data.shape, test_levels.shape)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, int(n*0.6/50), dev_data=test_data, dev_labels=test_levels)
+    nn.load_params(filenames)
+    # cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, int(n*0.6/50), dev_data=test_data, dev_labels=test_levels)
+    pred = nn.predict(test_data[:3,:])
+    print(pred)
+    print(test_levels[:3,:])
+    print(nn.accuracy(pred, test_levels[:3,:]))
     fig, (ax1, ax2) = plt.subplots(2, 1)
     t = np.arange(30)
-    if True:
+    if False:
         ax1.plot(t, cost_train,'r', label='train')
         ax1.plot(t, cost_dev, 'b', label='dev')
         ax1.set_xlabel('epochs')
@@ -296,5 +309,5 @@ if __name__ == '__main__':
         ax2.legend()
 
         fig.savefig('./test.pdf')
-    nn.save(filenames)
+    # nn.save(filenames)
 
