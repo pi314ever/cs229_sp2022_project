@@ -2,6 +2,8 @@
 
 import os
 import pandas as pd
+import sys
+import re
 
 SRC_EXT = '.xlsx'
 
@@ -18,7 +20,7 @@ def make_datafiles():
     book_list_df = pd.read_csv('../cs229_sp22_dataset/book_list.csv')
     isbn_title_dictionary = dict(zip(book_list_df.ISBN, book_list_df.Title))
     isbn_level_dictionary = dict(zip(book_list_df.ISBN, book_list_df.Level))
-    all_isbn_strings = [str(s) for s in isbn_level_dictionary.keys()]
+    all_isbn_strings = set([str(s) for s in isbn_level_dictionary.keys()])
     for base_path, dir_names, file_names in os.walk('../cs229_sp22_dataset'):
         for file_name in file_names:
             if file_name.endswith(SRC_EXT):
@@ -30,17 +32,21 @@ def make_datafiles():
                 if 'batch1' in rel_path:
                     df = pd.read_excel(rel_path, header=None)
                     curr_pages = df[1]
-                    begin = rel_path.rfind('/')
+                    if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+                        begin = rel_path.rfind('/')
+                    else:
+                        begin = rel_path.rfind('\\')
                     end = rel_path.rfind('.')
                     isbn =  rel_path[begin + 1:end]
                     if isbn in all_isbn_strings:
                         page = 1
                         for pg in curr_pages:
+                            pg = str(pg)
                             if pg != pg:
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(pg))
+                            wc.append(len(re.split(' |\r|\n',pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch1')
@@ -49,17 +55,21 @@ def make_datafiles():
                 if 'batch2' in rel_path:
                     df = pd.read_excel(rel_path, header=None)
                     curr_pages = df[0]
-                    begin = rel_path.rfind('/')
+                    if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+                        begin = rel_path.rfind('/')
+                    else:
+                        begin = rel_path.rfind('\\')
                     end = rel_path.rfind('.')
                     isbn =  rel_path[begin + 1:end]
                     if isbn in all_isbn_strings:
                         page = 1
                         for pg in curr_pages:
+                            pg = str(pg)
                             if pg != pg:
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(pg))
+                            wc.append(len(re.split(' |\r|\n',pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch2')
@@ -69,17 +79,21 @@ def make_datafiles():
                 if 'batch3' in rel_path:
                     df = pd.read_excel(rel_path, header=0)
                     curr_pages = df['Text']
-                    begin = rel_path.rfind('/')
+                    if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+                        begin = rel_path.rfind('/')
+                    else:
+                        begin = rel_path.rfind('\\')
                     end = rel_path.rfind('.')
                     isbn =  rel_path[begin + 1:end]
                     if isbn in all_isbn_strings:
                         page = 1
                         for pg in curr_pages:
+                            pg = str(pg)
                             if pg != pg:
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(pg))
+                            wc.append(len(re.split(' |\r|\n',pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch3')
@@ -90,17 +104,21 @@ def make_datafiles():
                 if 'batch4' in rel_path:
                     df = pd.read_excel(rel_path, header=0)
                     curr_pages = df['Text']
-                    begin = rel_path.rfind('/')
+                    if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+                        begin = rel_path.rfind('/')
+                    else:
+                        begin = rel_path.rfind('\\')
                     end = rel_path.rfind('.')
                     isbn =  rel_path[begin + 1:end]
                     if isbn in all_isbn_strings:
                         page = 1
                         for pg in curr_pages:
+                            pg = str(pg)
                             if pg != pg:
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(pg))
+                            wc.append(len(re.split(' |\r|\n',pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch4')
@@ -114,7 +132,7 @@ def make_datafiles():
     print(lengths)
 
     print('Writing datasets...')
-    df_dict = {'isbn': isbns, 'title': titles, 'page_text': pages, 'page_word_count': wc, 'batch': batch, 'page_num': page_nums,  'level': levels }     
+    df_dict = {'isbn': isbns, 'title': titles, 'page_text': pages, 'page_word_count': wc, 'batch': batch, 'page_num': page_nums,  'level': levels }
     df = pd.DataFrame(df_dict)
     df.to_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
     df_reduced = df[['level', 'page_text']].copy()

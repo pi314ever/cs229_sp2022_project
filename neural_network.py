@@ -1,5 +1,6 @@
 import numpy as np
 from time import time
+import re
 
 #*** neural_network.py
 # Summary: Contains a class for generating a 2-layer fully connected neural network
@@ -243,10 +244,16 @@ class two_layer_neural_network(util.model):
             pred[i, np.argmax(output[i,:])] = 1
         return pred
 
-
 # Testing function
 if __name__ == '__main__':
     folder = './neural_network_parameters/'
     filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
-    nn = two_layer_neural_network(6, 3, 2,filenames=filenames, verbose=True)
+    raw_data = util.load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
+    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    # print(valid_data)
+    text_data = np.array(valid_data['page_text'])
+    level = np.array(valid_data['level'])
+    print(text_data[83], level[83])
+    print(len(text_data), len(level))
+    print(re.split(' |\r|\n', text_data[83]))
 

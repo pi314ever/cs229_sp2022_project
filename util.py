@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 #*** util.py
 # Summary: Library of utility functions for various functions and classes
@@ -6,7 +7,8 @@ import numpy as np
 # Functions:
 #   softmax(): Computes the softmax for a 2d array along an axis
 #   sigmoid(): Computes the element-wise sigmoid for an nd array.
-#   accuracy(): Computes accuracy between predicted and actual labels
+#   load_csv(): Loads dataset from a csv file.
+#   load_tsv(): Loads dataset from a tsv file.
 #
 # Classes:
 #   model(): Base model with basic model parameters and structure
@@ -56,6 +58,9 @@ def sigmoid(x):
         A numpy float array containing the sigmoid results
     """
     return np.reciprocal(1 + np.exp(-x))
+
+def load_csv(filename):
+    return pd.read_csv(filename)
 class model:
     def __init__(self, filename = None, verbose = False):
         """
