@@ -6,6 +6,7 @@ import numpy as np
 # Functions:
 #   softmax(): Computes the softmax for a 2d array along an axis
 #   sigmoid(): Computes the element-wise sigmoid for an nd array.
+#   accuracy(): Computes accuracy between predicted and actual labels
 #
 # Classes:
 #   model(): Base model with basic model parameters and structure
@@ -55,7 +56,6 @@ def sigmoid(x):
         A numpy float array containing the sigmoid results
     """
     return np.reciprocal(1 + np.exp(-x))
-
 class model:
     def __init__(self, filename = None, verbose = False):
         """
@@ -74,12 +74,17 @@ class model:
         logger.warning('init_params function not implemented yet.')
     def load_params(self, *args, **kwargs):
         logger.warning('load_params function not implemented yet.')
-        logger.info(f'Parameters provided: {kwargs}')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def fit(self, *args, **kwargs):
         logger.warning('Fit function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def predict(self, *args, **kwargs):
         logger.warning('Predict function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def save(self, *args, **kwargs):
         logger.warning('Save function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
+    def accuracy(self, *args, **kwargs):
+        logger.warning('Accuracy function not implemented yet.')
         logger.info(f'Parameters provided: {args} {kwargs}')
 

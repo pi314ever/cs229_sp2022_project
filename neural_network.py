@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 #*** neural_network.py
 # Summary: Contains a class for generating a 2-layer fully connected neural network
@@ -58,24 +59,47 @@ class two_layer_neural_network(util.model):
     def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5, dev_data = None, dev_labels = None):
         # Check for proper dimensions
         self.is_valid(train_data, train_labels)
-        if dev_data is not None and dev_labels is not None:
+        has_dev = dev_data is not None and dev_labels is not None
+        if has_dev:
             self.is_valid(dev_data, dev_labels)
             cost_dev = []
             accuracy_dev = []
         cost_train = []
         accuracy_train = []
+        begin = time()
         for epoch in range(num_epochs):
+            # Shuffle training data
+            perm = np.random.shuffle(np.arange(train_data.shape[0]))
+            train_data = train_data[perm, :]
+            train_labels = train_labels[perm, :]
             if self.verbose:
                 logger.info(f'Epoch {epoch} of {num_epochs}')
-            self.gradient_descent_epoch(train_data, train_labels, learning_rate)
+            # Perform gradient descent
+            self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
+            # Gather current epoch information
             _, output, cost = self.forward_prop(train_data, train_labels)
-
             cost_train.append(cost)
-            accuracy_train.append()
-    def output_predict(self, output):
-        return
-    def gradient_descent_epoch(data, labels, learning_rate, batch_size):
-        pass
+            accuracy_train.append(self.accuracy(output, train_labels))
+            # Gather dev dataset epoch information
+            if has_dev:
+                _, output, cost = self.forward_prop(dev_data, dev_labels)
+                cost_dev.append(cost)
+                accuracy_dev.append(self.accuracy(output, dev_labels))
+        end = time()
+        if self.verbose:
+            logger.info(f'Training took {(end - begin)/60} minutes')
+    def accuracy(self, output, labels):
+        return sum(np.argmax(output, axis=1) == np.argmax(output, axis=1)) * 1. / labels.shape[0]
+    def gradient_descent_epoch(self, data, labels, learning_rate, batch_size):
+        self.is_valid(data, labels)
+        n = data.shape[0]
+        num_iters = int(np.floor(n / batch_size))
+        if num_iters == 0:
+            # Batch size larger than input size
+            num_iters = 1
+            batch_size = n
+        for i in range(num_iters):
+            self.backward_prop(data[batch_size*i:batch_size*(i+1), :], labels[batch_size*i:batch_size*(i+1),:])
     def is_valid(self, data = None, labels = None):
         """
         Checks data and labels are valid
@@ -94,9 +118,11 @@ class two_layer_neural_network(util.model):
         hidden = util.sigmoid((self.W[0] @ data.T + self.b[0]).T)
         output = util.softmax()
         pass
+    def backward_prop(data, labels):
+        pass
     def predict(self, data):
         """
-        Computes prediction based on weights
+        Computes prediction based on weights (Array of one-hot vectors)
         """
         pass
     def load_dataset(self, filename):
@@ -106,4 +132,5 @@ class two_layer_neural_network(util.model):
 if __name__ == '__main__':
     nn = two_layer_neural_network(5, 3, 10, verbose=True)
     nn.save()
+    arr = np.array([[1, 2, 3, 2, 1],[2, 3, 2, 1, 0],[3, 1, 9, 2, 1]])
     pass
