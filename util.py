@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import re
 
 #*** util.py
 # Summary: Library of utility functions for various functions and classes
@@ -8,7 +9,8 @@ import pandas as pd
 #   softmax(): Computes the softmax for a 2d array along an axis
 #   sigmoid(): Computes the element-wise sigmoid for an nd array.
 #   load_csv(): Loads dataset from a csv file.
-#   load_tsv(): Loads dataset from a tsv file.
+#   word_dict(): Creates dictionary mapping from words to index given messages
+#   split(): Splits messages into words by spaces and newlines
 #
 # Classes:
 #   model(): Base model with basic model parameters and structure
@@ -61,6 +63,29 @@ def sigmoid(x):
 
 def load_csv(filename):
     return pd.read_csv(filename)
+
+def word_dict(text_data):
+    mapping = dict()
+    idx = 0
+    for text in text_data:
+        words = split(text)
+        for word in words:
+            if word.lower() not in mapping:
+                mapping[word.lower()] = idx
+                idx += 1
+    return mapping
+
+def word_mat(text_data, mapping):
+    mat = np.zeros((len(text_data), len(mapping)))
+    for i, text in enumerate(text_data):
+        words = split(text)
+        for word in words:
+            mat[i, mapping[word.lower()]] += 1
+    return mat
+
+def split(message:str):
+    return re.split(' |\r|\n', message)
+
 class model:
     def __init__(self, filename = None, verbose = False):
         """

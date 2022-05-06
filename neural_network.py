@@ -1,6 +1,7 @@
 import numpy as np
 from time import time
 import re
+import matplotlib.pyplot as plt
 
 #*** neural_network.py
 # Summary: Contains a class for generating a 2-layer fully connected neural network
@@ -134,8 +135,8 @@ class two_layer_neural_network(util.model):
         for epoch in range(num_epochs):
             # Shuffle training data
             perm = np.random.shuffle(np.arange(train_data.shape[0]))
-            train_data = train_data[perm, :]
-            train_labels = train_labels[perm, :]
+            train_data = train_data[perm, :].squeeze()
+            train_labels = train_labels[perm, :].squeeze()
             if self.verbose:
                 logger.info(f'Epoch {epoch} of {num_epochs}')
             # Perform gradient descent
@@ -216,8 +217,8 @@ class two_layer_neural_network(util.model):
         Returns:
             _type_: _description_
         """
-        return -np.sum(labels * np.log(output)) / labels.shape[0]
-    def backward_prop(self, data, labels):
+        return -np.sum(labels * np.log(output + 1e-20)) / labels.shape[0]
+    def backward_prop(self, data, labels, learning_rate):
         """
         Performs backward propagation given data and labels
 
@@ -230,10 +231,10 @@ class two_layer_neural_network(util.model):
         n = data.shape[0]
         dCEdz2 = labels - output
         dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
-        self.W[0] -= -dCEdz1.T @ data / n + self.reg * self.W[0]
-        self.W[1] -= -dCEdz2.T @ hidden / n + self.reg * self.W[1]
-        self.b[0] -= (-np.average(dCEdz1, axis=0)).reshape(self.b[0].shape)
-        self.b[1] -= (-np.average(dCEdz2, axis=0)).reshape(self.b[1].shape)
+        self.W[0] -= -learning_rate * (dCEdz1.T @ data / n + self.reg * self.W[0])
+        self.W[1] -= -learning_rate * (dCEdz2.T @ hidden / n + self.reg * self.W[1])
+        self.b[0] -= (-learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
+        self.b[1] -= (-learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
     def predict(self, data):
         """
         Computes prediction based on weights (Array of one-hot vectors)
@@ -253,7 +254,47 @@ if __name__ == '__main__':
     # print(valid_data)
     text_data = np.array(valid_data['page_text'])
     level = np.array(valid_data['level'])
-    print(text_data[83], level[83])
-    print(len(text_data), len(level))
-    print(re.split(' |\r|\n', text_data[83]))
+    n = len(level)
+    unique_levels = set(level)
+    level_map = dict()
+    for i, letter in enumerate(unique_levels):
+        level_map[letter] = i
+    levels = np.zeros((n, len(level_map)))
+    for i  in range(n):
+        levels[i, level_map[level[i]]] = 1
+    word_dict = util.word_dict(text_data)
+    matrix = util.word_mat(text_data, word_dict)
+    # print(matrix)
+    # Shuffle data
+    # Shuffle training data
+    perm = np.random.shuffle(np.arange(text_data.shape[0]))
+    matrix = matrix[perm, :].squeeze()
+    levels = levels[perm, :].squeeze()
+    # Train nn
+    nn = two_layer_neural_network(len(word_dict), 15, len(unique_levels), verbose=True)
+    print(matrix.shape, levels.shape)
+    train_data = matrix[:int(n * 0.6), :]
+    train_levels = levels[:int(n * 0.6), :]
+    test_data = matrix[int(n * 0.6) + 1:, :]
+    test_levels = levels[int(n * 0.6) + 1:, :]
+    print(train_data.shape, train_levels.shape)
+    print(test_data.shape, test_levels.shape)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, int(n*0.6/50), dev_data=test_data, dev_labels=test_levels)
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    t = np.arange(30)
+    if True:
+        ax1.plot(t, cost_train,'r', label='train')
+        ax1.plot(t, cost_dev, 'b', label='dev')
+        ax1.set_xlabel('epochs')
+        ax1.set_ylabel('loss')
+        ax1.legend()
+
+        ax2.plot(t, accuracy_train,'r', label='train')
+        ax2.plot(t, accuracy_dev, 'b', label='dev')
+        ax2.set_xlabel('epochs')
+        ax2.set_ylabel('accuracy')
+        ax2.legend()
+
+        fig.savefig('./test.pdf')
+    nn.save(filenames)
 
