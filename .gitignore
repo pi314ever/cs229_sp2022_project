@@ -4,5 +4,6 @@
 # Ignore python cache files
 __pycache__
 
-# Ignore tests
 test*
+.ipynb_checkpoints/
+*.ipynb_checkpoints
