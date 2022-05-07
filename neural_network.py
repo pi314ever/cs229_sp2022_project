@@ -123,6 +123,7 @@ class two_layer_neural_network(util.model):
             cost_dev: Cost history for dev data (if provided)
             accuracy_dev: Accuracy history of dev data (if provided)
         """
+        logger.info(f'Fitting neural network with {self.num_features} features to {self.num_classes} classes with {self.reg} regularization and {self.num_hidden} hidden nodes')
         # Check for proper dimensions
         self.is_valid(train_data, train_labels)
         has_dev = dev_data is not None and dev_labels is not None
@@ -139,7 +140,7 @@ class two_layer_neural_network(util.model):
             train_data = train_data[perm, :].squeeze()
             train_labels = train_labels[perm, :].squeeze()
             if self.verbose:
-                logger.info(f'Epoch {epoch} of {num_epochs}')
+                logger.info(f'Epoch {epoch + 1} of {num_epochs}')
             # Perform gradient descent
             self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
             # Gather current epoch information
@@ -159,12 +160,7 @@ class two_layer_neural_network(util.model):
         else:
             return cost_train, accuracy_train
     def accuracy(self, output, labels):
-        # print(output, labels)
-        print(np.argmax(output, axis=1))
-        print(np.argmax(labels, axis=1))
-        print(np.argmax(output, axis=1)[0] == np.argmax(output, axis=1)[0])
-        print(labels.shape[0])
-        return sum(np.argmax(output, axis=1) == np.argmax(output, axis=1)) * 1. / labels.shape[0]
+        return sum(np.argmax(output, axis=1) == np.argmax(labels, axis=1)) * 1. / labels.shape[0]
     def gradient_descent_epoch(self, data, labels, learning_rate, batch_size):
         self.is_valid(data, labels)
         n = data.shape[0]
@@ -237,10 +233,10 @@ class two_layer_neural_network(util.model):
         n = data.shape[0]
         dCEdz2 = labels - output
         dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
-        self.W[0] -= -learning_rate * (dCEdz1.T @ data / n + self.reg * self.W[0])
-        self.W[1] -= -learning_rate * (dCEdz2.T @ hidden / n + self.reg * self.W[1])
-        self.b[0] -= (-learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
-        self.b[1] -= (-learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
+        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + self.reg * self.W[0])
+        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + self.reg * self.W[1])
+        self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
+        self.b[1] -= -(learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
     def predict(self, data):
         """
         Computes prediction based on weights (Array of one-hot vectors)
@@ -274,28 +270,24 @@ if __name__ == '__main__':
     # print(matrix)
     # Shuffle data
     # Shuffle training data
-    np.random.seed(100)
+    # np.random.seed(100)
     perm = np.random.shuffle(np.arange(text_data.shape[0]))
     matrix = matrix[perm, :].squeeze()
     levels = levels[perm, :].squeeze()
     # Train nn
-    nn = two_layer_neural_network(len(word_dict), 10, len(unique_levels), verbose=True)
-    print(matrix.shape, levels.shape)
-    train_data = matrix[:int(n * 0.6), :]
-    train_levels = levels[:int(n * 0.6), :]
-    test_data = matrix[int(n * 0.6) + 1:, :]
-    test_levels = levels[int(n * 0.6) + 1:, :]
-    print(train_data.shape, train_levels.shape)
-    print(test_data.shape, test_levels.shape)
-    nn.load_params(filenames)
-    # cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, int(n*0.6/50), dev_data=test_data, dev_labels=test_levels)
-    pred = nn.predict(test_data[:3,:])
-    print(pred)
-    print(test_levels[:3,:])
-    print(nn.accuracy(pred, test_levels[:3,:]))
+    nn = two_layer_neural_network(len(word_dict), 300, len(unique_levels),reg=0.02, verbose=True)
+    c = 0.75
+    train_data = matrix[:int(n * c), :]
+    train_levels = levels[:int(n * c), :]
+    test_data = matrix[int(n * c) + 1:, :]
+    test_levels = levels[int(n * c) + 1:, :]
+    # nn.load_params(filenames)
+    epochs = 100
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=0.4)
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    t = np.arange(30)
-    if False:
+    nn.save(filenames)
+    t = np.arange(epochs)
+    if True:
         ax1.plot(t, cost_train,'r', label='train')
         ax1.plot(t, cost_dev, 'b', label='dev')
         ax1.set_xlabel('epochs')
@@ -309,5 +301,4 @@ if __name__ == '__main__':
         ax2.legend()
 
         fig.savefig('./test.pdf')
-    # nn.save(filenames)
 
