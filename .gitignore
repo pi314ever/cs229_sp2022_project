@@ -3,3 +3,4 @@
 
 # Ignore python cache files
 __pycache__
+naive_bayes_old.py
