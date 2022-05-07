@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import util
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
 logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,9 +23,20 @@ logger.setLevel(logging.DEBUG)
 # logger.error(): For notifying failed attempts at calculation (i.e. any exception, bad data, etc.)
 #***
 
+# Hyperparameters
+epochs = 200
+lr = 0.01
+reg = 0.2
+n_hidden = 500
 # Filenames for saving parameters
-folder = './neural_network_parameters/'
+folder = f'./neural_network_parameters/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
+# folder = './neural_network_parameters/'
 filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
+figure_filename = './test.pdf'
+
+plot = True
+save = False
+load = False
 
 class two_layer_neural_network(util.model):
     """
@@ -59,10 +70,11 @@ class two_layer_neural_network(util.model):
         super().__init__(filenames, verbose)
     def init_params(self):
         if self.verbose:
-            logger.info('Initializing weights and biases')
+            logger.info('Default initializing weights and biases')
         # Initialize weights
         # np.random.seed(100) # For reproducibility
-        self.W = [np.random.normal(0,1, (self.num_hidden, self.num_features)), np.random.normal(0,1,(self.num_classes, self.num_hidden))]
+        sigma = 1
+        self.W = [np.random.normal(0,sigma, (self.num_hidden, self.num_features)), np.random.normal(0,sigma,(self.num_classes, self.num_hidden))]
         self.b = [np.zeros((self.num_hidden, 1)), np.zeros((self.num_classes, 1))]
     def load_params(self, filenames, **kwargs):
         """
@@ -77,13 +89,18 @@ class two_layer_neural_network(util.model):
         """
         if self.verbose:
             logger.info(f'Loading dataset from {filenames}')
-        assert(len(filenames) == 4)
-        self.W = [np.array([]), np.array([])]
-        self.b = [np.array([]), np.array([])]
-        self.W[0] = np.loadtxt(filenames[0], ndmin=2, **kwargs)
-        self.W[1] = np.loadtxt(filenames[1], ndmin=2, **kwargs)
-        self.b[0] = np.loadtxt(filenames[2], ndmin=2, **kwargs)
-        self.b[1] = np.loadtxt(filenames[3], ndmin=2, **kwargs)
+        try:
+            assert(len(filenames) == 4)
+            self.W = [np.array([]), np.array([])]
+            self.b = [np.array([]), np.array([])]
+            self.W[0] = np.loadtxt(filenames[0], ndmin=2, **kwargs)
+            self.W[1] = np.loadtxt(filenames[1], ndmin=2, **kwargs)
+            self.b[0] = np.loadtxt(filenames[2], ndmin=2, **kwargs)
+            self.b[1] = np.loadtxt(filenames[3], ndmin=2, **kwargs)
+        except:
+            logger.warning('Failed to load dataset, performing default initialization.')
+            self.init_params()
+            pass
         # Confirm parameters are of the right shape
         try:
             assert(self.W[0].shape == (self.num_hidden, self.num_features))
@@ -138,33 +155,44 @@ class two_layer_neural_network(util.model):
         cost_train = []
         accuracy_train = []
         begin = time()
-        for epoch in range(num_epochs):
-            # Shuffle training data
-            perm = np.random.shuffle(np.arange(train_data.shape[0]))
-            train_data = train_data[perm, :].squeeze()
-            train_labels = train_labels[perm, :].squeeze()
-            if self.verbose:
-                logger.info(f'Epoch {epoch + 1} of {num_epochs}')
-            # Perform gradient descent
-            self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
-            # Gather current epoch information
-            _, output, cost = self.forward_prop(train_data, train_labels)
-            cost_train.append(cost)
-            accuracy_train.append(self.accuracy(output, train_labels))
-            # Gather dev dataset epoch information
-            if has_dev:
-                _, output, cost = self.forward_prop(dev_data, dev_labels)
-                cost_dev.append(cost)
-                accuracy_dev.append(self.accuracy(output, dev_labels))
+        try:
+            for epoch in range(num_epochs):
+                # Shuffle training data
+                perm = np.random.shuffle(np.arange(train_data.shape[0]))
+                train_data = train_data[perm, :].squeeze()
+                train_labels = train_labels[perm, :].squeeze()
+                if self.verbose:
+                    logger.info(f'Epoch {epoch + 1} of {num_epochs}')
+                # Perform gradient descent
+                self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
+                # Gather current epoch information
+                _, output, cost = self.forward_prop(train_data, train_labels)
+                cost_train.append(cost)
+                accuracy_train.append(self.accuracy(output, train_labels))
+                # Gather dev dataset epoch information
+                if has_dev:
+                    _, output, cost = self.forward_prop(dev_data, dev_labels)
+                    cost_dev.append(cost)
+                    accuracy_dev.append(self.accuracy(output, dev_labels))
+        except KeyboardInterrupt:
+            logger.info('Keyboard interrupted, stopping training process.')
+            pass
+        except Exception as e:
+            raise e
         end = time()
         if self.verbose:
             logger.info(f'Training took {(end - begin)/60} minutes')
         if has_dev:
-            return cost_train, accuracy_train, cost_dev, accuracy_dev
+            return np.array(cost_train), np.array(accuracy_train), np.array(cost_dev), np.array(accuracy_dev)
         else:
-            return cost_train, accuracy_train
+            return np.array(cost_train), np.array(accuracy_train)
     def accuracy(self, output, labels):
-        return sum(np.argmax(output, axis=1) == np.argmax(labels, axis=1)) * 1. / labels.shape[0]
+        assert(output.shape == labels.shape)
+        acc = []
+        for i in range(self.num_classes):
+            acc.append(sum(np.logical_and(np.argmax(output, axis=1) == i, np.argmax(labels, axis=1) == i)) * 1. / sum(labels[:,i]))
+        acc.append(sum(np.argmax(output, axis=1) == np.argmax(labels, axis=1)) * 1. / labels.shape[0])
+        return acc
     def gradient_descent_epoch(self, data, labels, learning_rate, batch_size):
         self.is_valid(data, labels)
         n = data.shape[0]
@@ -252,34 +280,47 @@ class two_layer_neural_network(util.model):
         return pred
 
 # Testing function
-if __name__ == '__main__':
+def main():
     # Gather data
     matrix, levels, level_map = util.load_dataset_pooled()
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.75
     train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
+    num_class = [sum(levels[:,i]) for i in range(n_levels)]
+    for i in range(n_levels):
+        print(f'Number of class {i}: {num_class[i]}')
 
     # Train nn
-    nn = two_layer_neural_network(n_features, 300, n_levels,reg=0.04, verbose=True)
-    # nn.load_params(filenames)
-    epochs = 200
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=0.1)
-    # nn.save(filenames)
+    nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
+    if load:
+        nn.load_params(filenames)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=lr)
+    if save:
+        nn.save(filenames)
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    t = np.arange(epochs)
-    if True:
-        ax1.plot(t, cost_train,'r', label='train')
-        ax1.plot(t, cost_dev, 'b', label='dev')
+    if plot:
+        ax1.plot(np.arange(len(cost_train)), cost_train,'r', label='train')
+        ax1.plot(np.arange(len(cost_dev)), cost_dev, 'b', label='dev')
         ax1.set_xlabel('epochs')
         ax1.set_ylabel('loss')
         ax1.legend()
 
-        ax2.plot(t, accuracy_train,'r', label='train')
-        ax2.plot(t, accuracy_dev, 'b', label='dev')
+        labels = list(np.arange(nn.num_classes))
+        labels.append('all')
+        train_labels = [f'train {labels[i]}' for i in range(len(labels))]
+        dev_labels = [f'dev {labels[i]}' for i in range(len(labels))]
+
+        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,:-1],':', label=train_labels[:-1])
+        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,-1],'r', label=train_labels[-1], linewidth=2)
+        ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,:-1], '--', label=dev_labels[:-1])
+        ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,-1],'b', label=dev_labels[-1],linewidth=2)
         ax2.set_xlabel('epochs')
         ax2.set_ylabel('accuracy')
         ax2.legend()
 
-        fig.savefig('./test.pdf')
+        fig.savefig(figure_filename)
+
+if __name__ == '__main__':
+    main()
 
