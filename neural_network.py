@@ -1,7 +1,5 @@
-from enum import unique
 import numpy as np
 from time import time
-import re
 import matplotlib.pyplot as plt
 
 #*** neural_network.py
@@ -38,7 +36,7 @@ plot = True
 save = False
 load = False
 
-class two_layer_neural_network(util.model):
+class two_layer_neural_network(util.classification_model):
     """
     Two layered fully connected neural network with Batch Gradient Descent optimizer
 
@@ -48,7 +46,7 @@ class two_layer_neural_network(util.model):
     All data must be shaped as (num_examples, num_features)
     All labels must be shaped as (num_examples, num_classes)
     """
-    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False):
+    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False, **kwargs):
         """
         Initializes neural network
 
@@ -66,8 +64,9 @@ class two_layer_neural_network(util.model):
         self.num_features = num_features
         self.num_hidden = num_hidden
         self.reg = reg
+        self.verbose = verbose
         # Load parameters
-        super().__init__(filenames, verbose)
+        super().__init__(filenames, **kwargs)
     def init_params(self):
         if self.verbose:
             logger.info('Default initializing weights and biases')
@@ -270,10 +269,12 @@ class two_layer_neural_network(util.model):
         self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
         self.b[1] -= -(learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
     def predict(self, data):
+        return self.forward_prop(data)[1]
+    def predict_one_hot(self, data):
         """
         Computes prediction based on weights (Array of one-hot vectors)
         """
-        output = self.forward_prop(data)[1]
+        output = self.predict(data)
         pred = np.zeros_like(output)
         for i in range(output.shape[0]):
             pred[i, np.argmax(output[i,:])] = 1

@@ -86,7 +86,7 @@ def word_mat(text_data, mapping):
 def split(message:str):
     return re.split(' |\r|\n', message)
 
-def load_dataset():
+def load_dataset(pooled=False, by_books=False):
     """
     Loads dataset from main dataset.
 
@@ -159,18 +159,16 @@ def train_test_split(c, matrix, levels):
     test_levels = levels[int(n * c) + 1:, :]
     return train_data, train_levels, test_data, test_levels
 
-class model:
-    def __init__(self, filename = None, verbose = False):
+class classification_model:
+    def __init__(self, filename = None, **kwargs):
         """
         Call super().__init__() after all parameters necessary for load_params and init_params are created.
 
         Args:
             filename (str, optional): File to load parameters from. Defaults to None.
-            verbose (bool, optional): Toggles verbose printouts. Defaults to False.
         """
-        self.verbose = verbose
         if filename is not None:
-            self.load_params(filename)
+            self.load_params(filename, **kwargs)
         else:
             self.init_params()
     def init_params(self):
@@ -187,7 +185,98 @@ class model:
     def save(self, *args, **kwargs):
         logger.warning('Save function not implemented yet.')
         logger.info(f'Parameters provided: {args} {kwargs}')
-    def accuracy(self, *args, **kwargs):
-        logger.warning('Accuracy function not implemented yet.')
-        logger.info(f'Parameters provided: {args} {kwargs}')
+    def accuracy(self, output, labels):
+        """
+        Defines accuracy of output given labels. Returns accuracies for each individual class and overall accuracy
+
+        Args:
+            output (2d array): Array of model outputs
+            labels (2d array): Array of corresponding labels
+
+        Returns:
+            accuracy "acc" (1d list): 1d array of [acc_class_0, ..., acc_class_n, acc_overall]
+        """
+        if self.verbose:
+            logger.info('Default accuracy module')
+        assert(output.shape == labels.shape)
+        acc = []
+        for i in range(self.num_classes):
+            acc.append(sum(np.logical_and(np.argmax(output, axis=1) == i, np.argmax(labels, axis=1) == i)) * 1. / sum(labels[:,i]))
+        acc.append(sum(np.argmax(output, axis=1) == np.argmax(labels, axis=1)) * 1. / labels.shape[0])
+        return acc
+    def is_valid(self, data = None, labels = None):
+        """
+        Checks data and labels are valid
+
+        Args:
+            data (2d array, optional): Data points to be considered. Defaults to None.
+            labels (2d array, optional): Labels to be considered. Defaults to None.
+
+        Returns:
+            Returns None
+
+        Exceptions:
+            Throws an exception if the input parameters are of invalid shape.
+        """
+        if self.verbose:
+            logger.info('Default is_valid module')
+        if data is not None:
+            nd, dim = data.shape
+            assert dim == self.num_features, 'Data features does not match declared number of features'
+        if labels is not None:
+            nl, o = labels.shape
+            assert o == self.num_classes, 'Label classes does not match declared number of classes'
+        if data is not None and labels is not None:
+            assert nd == nl, 'Number of data points does not match number of label points'
+        pass
+    def predict_one_hot(self, data):
+        """
+        Computes prediction based on weights (Array of one-hot vectors)
+        """
+        if self.verbose:
+            logger.info('Default predict_one_hot module')
+        output = self.predict(data)
+        pred = np.zeros_like(output)
+        for i in range(output.shape[0]):
+            pred[i, np.argmax(output[i,:])] = 1
+        return pred
+
+# Sample (bare minimum) class using this base model:
+class sample_model(classification_model):
+    #*** MUST IMPLEMENT THESE METHODS ***#
+    def __init__(*args, filename=None,**kwargs):
+        # Initialize important parameters
+        # MUST HAVE members:
+        #   self.verbose (bool)
+        #   self.num_features (int)
+        #   self.num_classes  (int)
+        # Load dataset using base model init method
+        super().__init__(filename)
+    def init_params(self, *args):
+        # Initialize model parameters here
+        pass
+    def load_params(self, filename, *args, **kwargs):
+        # Load parameters from file(s) here
+        pass
+    def fit(self, *args, **kwargs):
+        # Fit the model here
+        pass
+    def predict(self, *args, **kwargs):
+        # Predict the model output here
+        pass
+    def save(self, filename, *args, **kwargs):
+        # Save parameters to file(s) here
+        pass
+
+    #*** Can modify the exact implementation of these methods to your desire
+    def accuracy(self, output, labels):
+        # Usually fine to use default provided definitions here
+        return super().accuracy(output, labels)
+    def is_valid(self, data=None, labels=None):
+        # Usually fine to use default provided definitions her
+        super().is_valid(data, labels)
+    def predict_one_hot(self, data):
+        # Usually fine to use default provided definitions her
+        return super().predict_one_hot(data)
+
 
