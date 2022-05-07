@@ -98,6 +98,29 @@ def load_dataset():
     for i, letter in enumerate(unique_levels):
         level_map[letter] = i
     levels = np.zeros((n, len(level_map)))
+    for i in range(n):
+        levels[i, level_map[level[i]]] = 1.
+    word_map = word_dict(text_data)
+    matrix = word_mat(text_data, word_map)
+    # Shuffle data
+    # np.random.seed(100)
+    perm = np.random.shuffle(np.arange(text_data.shape[0]))
+    matrix = matrix[perm, :].squeeze()
+    levels = levels[perm, :].squeeze()
+    return matrix, levels, level_map
+
+def load_dataset_pooled():
+    raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
+    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    text_data = np.array(valid_data['page_text'])
+    level = np.array(valid_data['level'])
+    n = len(level)
+    level_map = dict()
+    grade_levels = [['A','B','C'],['D','E','F','G','H','I'],['J','K','L','M','N']]
+    for i, grades in enumerate(grade_levels):
+        for grade in grades:
+            level_map[grade] = i
+    levels = np.zeros((n, 3))
     for i  in range(n):
         levels[i, level_map[level[i]]] = 1.
     word_map = word_dict(text_data)
