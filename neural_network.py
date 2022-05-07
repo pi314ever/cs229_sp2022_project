@@ -254,19 +254,19 @@ class two_layer_neural_network(util.model):
 # Testing function
 if __name__ == '__main__':
     # Gather data
-    matrix, levels, level_map = util.load_dataset()
+    matrix, levels, level_map = util.load_dataset_pooled()
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.75
     train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
 
     # Train nn
-    nn = two_layer_neural_network(n_features, 300, n_levels,reg=0.02, verbose=True)
+    nn = two_layer_neural_network(n_features, 300, n_levels,reg=0.04, verbose=True)
     # nn.load_params(filenames)
-    epochs = 100
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=0.4)
+    epochs = 200
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=0.1)
+    # nn.save(filenames)
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    nn.save(filenames)
     t = np.arange(epochs)
     if True:
         ax1.plot(t, cost_train,'r', label='train')
