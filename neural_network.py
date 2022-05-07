@@ -23,6 +23,10 @@ logger.setLevel(logging.DEBUG)
 # logger.error(): For notifying failed attempts at calculation (i.e. any exception, bad data, etc.)
 #***
 
+# Filenames for saving parameters
+folder = './neural_network_parameters/'
+filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
+
 class two_layer_neural_network(util.model):
     """
     Two layered fully connected neural network with Batch Gradient Descent optimizer
@@ -249,38 +253,15 @@ class two_layer_neural_network(util.model):
 
 # Testing function
 if __name__ == '__main__':
-    folder = './neural_network_parameters/'
-    filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
-    raw_data = util.load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
-    # print(valid_data)
-    text_data = np.array(valid_data['page_text'])
-    level = np.array(valid_data['level'])
-    n = len(level)
-    unique_levels = list(set(level))
-    unique_levels.sort()
-    level_map = dict()
-    for i, letter in enumerate(unique_levels):
-        level_map[letter] = i
-    levels = np.zeros((n, len(level_map)))
-    for i  in range(n):
-        levels[i, level_map[level[i]]] = 1.
-    word_dict = util.word_dict(text_data)
-    matrix = util.word_mat(text_data, word_dict)
-    # print(matrix)
-    # Shuffle data
-    # Shuffle training data
-    # np.random.seed(100)
-    perm = np.random.shuffle(np.arange(text_data.shape[0]))
-    matrix = matrix[perm, :].squeeze()
-    levels = levels[perm, :].squeeze()
-    # Train nn
-    nn = two_layer_neural_network(len(word_dict), 300, len(unique_levels),reg=0.02, verbose=True)
+    # Gather data
+    matrix, levels, level_map = util.load_dataset()
+    n, n_features = matrix.shape
+    _, n_levels = levels.shape
     c = 0.75
-    train_data = matrix[:int(n * c), :]
-    train_levels = levels[:int(n * c), :]
-    test_data = matrix[int(n * c) + 1:, :]
-    test_levels = levels[int(n * c) + 1:, :]
+    train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
+
+    # Train nn
+    nn = two_layer_neural_network(n_features, 300, n_levels,reg=0.02, verbose=True)
     # nn.load_params(filenames)
     epochs = 100
     cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=0.4)
