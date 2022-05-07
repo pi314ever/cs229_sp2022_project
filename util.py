@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import re
 
 #*** util.py
 # Summary: Library of utility functions for various functions and classes
@@ -6,6 +8,9 @@ import numpy as np
 # Functions:
 #   softmax(): Computes the softmax for a 2d array along an axis
 #   sigmoid(): Computes the element-wise sigmoid for an nd array.
+#   load_csv(): Loads dataset from a csv file.
+#   word_dict(): Creates dictionary mapping from words to index given messages
+#   split(): Splits messages into words by spaces and newlines
 #
 # Classes:
 #   model(): Base model with basic model parameters and structure
@@ -56,6 +61,85 @@ def sigmoid(x):
     """
     return np.reciprocal(1 + np.exp(-x))
 
+def load_csv(filename):
+    return pd.read_csv(filename)
+
+def word_dict(text_data):
+    mapping = dict()
+    idx = 0
+    for text in text_data:
+        words = split(text)
+        for word in words:
+            if word.lower() not in mapping:
+                mapping[word.lower()] = idx
+                idx += 1
+    return mapping
+
+def word_mat(text_data, mapping):
+    mat = np.zeros((len(text_data), len(mapping)))
+    for i, text in enumerate(text_data):
+        words = split(text)
+        for word in words:
+            mat[i, mapping[word.lower()]] += 1
+    return mat
+
+def split(message:str):
+    return re.split(' |\r|\n', message)
+
+def load_dataset():
+    raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
+    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    text_data = np.array(valid_data['page_text'])
+    level = np.array(valid_data['level'])
+    n = len(level)
+    unique_levels = list(set(level))
+    unique_levels.sort()
+    level_map = dict()
+    for i, letter in enumerate(unique_levels):
+        level_map[letter] = i
+    levels = np.zeros((n, len(level_map)))
+    for i in range(n):
+        levels[i, level_map[level[i]]] = 1.
+    word_map = word_dict(text_data)
+    matrix = word_mat(text_data, word_map)
+    # Shuffle data
+    # np.random.seed(100)
+    perm = np.random.shuffle(np.arange(text_data.shape[0]))
+    matrix = matrix[perm, :].squeeze()
+    levels = levels[perm, :].squeeze()
+    return matrix, levels, level_map
+
+def load_dataset_pooled():
+    raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
+    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    text_data = np.array(valid_data['page_text'])
+    level = np.array(valid_data['level'])
+    n = len(level)
+    level_map = dict()
+    grade_levels = [['A','B','C'],['D','E','F','G','H','I'],['J','K','L','M','N']]
+    for i, grades in enumerate(grade_levels):
+        for grade in grades:
+            level_map[grade] = i
+    levels = np.zeros((n, 3))
+    for i  in range(n):
+        levels[i, level_map[level[i]]] = 1.
+    word_map = word_dict(text_data)
+    matrix = word_mat(text_data, word_map)
+    # Shuffle data
+    # np.random.seed(100)
+    perm = np.random.shuffle(np.arange(text_data.shape[0]))
+    matrix = matrix[perm, :].squeeze()
+    levels = levels[perm, :].squeeze()
+    return matrix, levels, level_map
+
+def train_test_split(c, matrix, levels):
+    n = matrix.shape[0]
+    train_data = matrix[:int(n * c), :]
+    train_levels = levels[:int(n * c), :]
+    test_data = matrix[int(n * c) + 1:, :]
+    test_levels = levels[int(n * c) + 1:, :]
+    return train_data, train_levels, test_data, test_levels
+
 class model:
     def __init__(self, filename = None, verbose = False):
         """
@@ -74,12 +158,17 @@ class model:
         logger.warning('init_params function not implemented yet.')
     def load_params(self, *args, **kwargs):
         logger.warning('load_params function not implemented yet.')
-        logger.info(f'Parameters provided: {kwargs}')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def fit(self, *args, **kwargs):
         logger.warning('Fit function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def predict(self, *args, **kwargs):
         logger.warning('Predict function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
     def save(self, *args, **kwargs):
         logger.warning('Save function not implemented yet.')
+        logger.info(f'Parameters provided: {args} {kwargs}')
+    def accuracy(self, *args, **kwargs):
+        logger.warning('Accuracy function not implemented yet.')
         logger.info(f'Parameters provided: {args} {kwargs}')
 
