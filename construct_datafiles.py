@@ -133,12 +133,23 @@ def make_datafiles():
 
     print('Writing datasets...')
     df_dict = {'isbn': isbns, 'title': titles, 'page_text': pages, 'page_word_count': wc, 'batch': batch, 'page_num': page_nums,  'level': levels }
-    df = pd.DataFrame(df_dict)
-    df.to_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    df_reduced = df[['level', 'page_text']].copy()
+    df_separate_levels = pd.DataFrame(df_dict)
+    df_separate_levels.to_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
 
-    df_reduced.to_csv('../cs229_sp22_dataset/level_to_page.tsv', header=None, index=(), sep='\t', mode='w')
-    df_reduced.to_csv('../cs229_sp22_dataset/level_to_page.csv', header=None, index=(),  mode='w')
+    df_pooled_levels = df_separate_levels.copy()
+    df_pooled_levels["level"].replace({"A": "X", "B": "X", "C": "X", "D": "Y", "E": "Y", "F": "Y", "G": "Y", "H": "Y", "I": "Y", "J": "Z", "K": "Z", "L": "Z", "M": "Z", "N" : "Z"}, inplace=True)
+    df_pooled_levels.to_csv('../cs229_sp22_dataset/full_processed_dataset_pooled.csv')
+
+    df_separate_reduced = df_separate_levels[['level', 'page_text']].copy()
+    df_separate_reduced.to_csv('../cs229_sp22_dataset/level_to_page_pooled.tsv', header=None, index=(), sep='\t', mode='w')
+    df_separate_reduced.to_csv('../cs229_sp22_dataset/level_to_page.csv', header=None, index=(),  mode='w')
+
+
+    df_pooled_reduced = df_separate_reduced.copy()
+    df_pooled_reduced["level"].replace({"A": "X", "B": "X", "C": "X", "D": "Y", "E": "Y", "F": "Y", "G": "Y", "H": "Y", "I": "Y", "J": "Z", "K": "Z", "L": "Z", "M": "Z", "N" : "Z"}, inplace=True)
+    df_pooled_reduced.to_csv('../cs229_sp22_dataset/level_to_page_pooled.tsv', header=None, index=(), sep='\t', mode='w')
+    df_pooled_reduced.to_csv('../cs229_sp22_dataset/level_to_page_pooled.csv', header=None, index=(),  mode='w')
+
     print('Done.')
 if __name__ == '__main__':
     make_datafiles()
