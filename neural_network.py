@@ -264,8 +264,8 @@ class two_layer_neural_network(util.classification_model):
         n = data.shape[0]
         dCEdz2 = labels - output
         dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
-        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + self.reg * self.W[0])
-        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + self.reg * self.W[1])
+        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + 2 * self.reg * self.W[0])
+        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + 2 * self.reg * self.W[1])
         self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
         self.b[1] -= -(learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
     def predict(self, data):
