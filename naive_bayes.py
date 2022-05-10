@@ -78,6 +78,9 @@ class naive_bayes_model(util.classification_model):
         Args:
             matrix (2d array): A numpy array containing word counts for the training data
             labels (2d array): The binary (0 or 1) labels for that training data
+
+        Returns:
+            Accuracy of the training set after fitting
         """
         if self.verbose:
             logger.info(f'Fitting {self.num_features} features to {self.num_classes} classes with {matrix.shape[0]} datapoints.')
