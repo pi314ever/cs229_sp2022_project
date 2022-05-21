@@ -17,7 +17,7 @@ import re
 #***
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
 logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -84,30 +84,44 @@ def word_mat(text_data, mapping):
     return mat
 
 def split(message:str):
-    return re.split(' |\r|\n', message)
+    tmp = re.sub('â€™', "'",message)
+    return re.sub(r'[^a-zA-Z0-9_\']+', ' ', tmp).split()
 
-def load_dataset(pooled=False, by_books=False):
+def load_dataset(min_words = 3, pooled=False, by_books=False):
     """
     Loads dataset from main dataset.
+
+    Arguments:
+        min_words (int): Minimum number of words in dataset to be considered
+        pooled (bool): Whether or not books are pooled into 3 catagories only
+        by_books (bool): Whether or not dataset is pooled by books
 
     Returns:
         _type_: _description_
     """
     # Loads data and processes
     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    if by_books:
+        raw_data = raw_data.groupby('isbn').agg({'page_word_count':'sum', 'level':'max','page_num':'max','page_text':'sum'})
+        pass
+    valid_data = raw_data.loc[raw_data['page_word_count'] > min_words]
     text_data = np.array(valid_data['page_text'])
     level = np.array(valid_data['level'])
     n = len(level)
-    # Obtain unique levels
-    unique_levels = list(set(level))
-    unique_levels.sort()
+    if pooled:
+        pools = [['A','B','C','D'],['E','F','G','H','I','J'],['K','L','M','N']]
+    else:
+        # Obtain unique levels
+        pools = list(set(level))
+        pools.sort()
+        pools = [[pools[i]] for i in range(len(pools))]
     # Maps letter to index
     level_map = dict()
-    for i, letter in enumerate(unique_levels):
-        level_map[letter] = i
+    for i, pool in enumerate(pools):
+        for element in pool:
+            level_map[element] = i
     # Generates levels matrix (list of one hot vectors)
-    levels = np.zeros((n, len(level_map)))
+    levels = np.zeros((n, len(pools)))
     for i in range(n):
         levels[i, level_map[level[i]]] = 1.
     # Generate word matrix
@@ -120,28 +134,8 @@ def load_dataset(pooled=False, by_books=False):
     levels = levels[perm, :].squeeze()
     return matrix, levels, level_map
 
-def load_dataset_pooled():
-    raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
-    text_data = np.array(valid_data['page_text'])
-    level = np.array(valid_data['level'])
-    n = len(level)
-    level_map = dict()
-    grade_levels = [['A','B','C','D'],['E','F','G','H','I','J'],['K','L','M','N']]
-    for i, grades in enumerate(grade_levels):
-        for grade in grades:
-            level_map[grade] = i
-    levels = np.zeros((n, 3))
-    for i  in range(n):
-        levels[i, level_map[level[i]]] = 1.
-    word_map = word_dict(text_data)
-    matrix = word_mat(text_data, word_map)
-    # Shuffle data
-    # np.random.seed(100)
-    perm = np.random.shuffle(np.arange(text_data.shape[0]))
-    matrix = matrix[perm, :].squeeze()
-    levels = levels[perm, :].squeeze()
-    return matrix, levels, level_map
+def load_dataset_pooled(**kwargs):
+    return load_dataset(pooled=True, **kwargs)
 
 # def load_dataset_books(pooled = True):
 #     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import util
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
 logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,10 +22,12 @@ logger.setLevel(logging.DEBUG)
 #***
 
 # Hyperparameters
-epochs = 200
+epochs = 500
 lr = 0.01
-reg = 0.2
-n_hidden = 500
+reg = 0.15
+n_hidden = 200
+batch_size = 1000
+var_lr = False
 # Filenames for saving parameters
 folder = f'./neural_network_parameters/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
 # folder = './neural_network_parameters/'
@@ -124,7 +126,7 @@ class two_layer_neural_network(util.classification_model):
         np.savetxt(filenames[1], self.W[1], **kwargs)
         np.savetxt(filenames[2], self.b[0], **kwargs)
         np.savetxt(filenames[3], self.b[1], **kwargs)
-    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None):
+    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None, var_lr = False):
         """
         Fits neural network based on training data and training labels using batch gradient descent (Can convert to GD if batch size = number of examples)
 
@@ -136,6 +138,7 @@ class two_layer_neural_network(util.classification_model):
             learning_rate (float, optional): Batch GD learning rate. Defaults to 5.
             dev_data (2d array, optional): Development data, for use in comparing incremental increases. Defaults to None.
             dev_labels (2d array, optional): Developmental labels, for use in comparing incremental increases. Defaults to None.
+            var_lr (bool): Whether or not the learning rate is decreasing
 
         Returns:
             cost_train: Cost history for training data
@@ -162,6 +165,8 @@ class two_layer_neural_network(util.classification_model):
                 train_labels = train_labels[perm, :].squeeze()
                 if self.verbose:
                     logger.info(f'Epoch {epoch + 1} of {num_epochs}')
+                if var_lr:
+                    learning_rate /= np.log(np.log(0.1 * epoch + 1) + 1) + 1
                 # Perform gradient descent
                 self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
                 # Gather current epoch information
@@ -283,7 +288,7 @@ class two_layer_neural_network(util.classification_model):
 # Testing function
 def main():
     # Gather data
-    matrix, levels, level_map = util.load_dataset_pooled()
+    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=True)
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.75
@@ -296,7 +301,7 @@ def main():
     nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
     if load:
         nn.load_params(filenames)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=lr)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=lr, var_lr = var_lr)
     if save:
         nn.save(filenames)
     fig, (ax1, ax2) = plt.subplots(2, 1)

@@ -8,7 +8,7 @@ import numpy as np
 import util
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
 logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
