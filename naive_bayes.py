@@ -127,8 +127,8 @@ def main():
     matrix, levels, level_map = util.load_dataset_pooled()
     n, n_features = matrix.shape
     _, n_levels = levels.shape
-    c = 0.75
-    train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
+    c = 0.6
+    train_data, train_levels,dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels, c)
     # print("train data shape", train_data.shape)
     # print("test data shape", test_data.shape)
     #print("test data shape labels", test_levels.shape)

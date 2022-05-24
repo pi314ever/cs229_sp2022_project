@@ -1,3 +1,4 @@
+from cgi import test
 import numpy as np
 import pandas as pd
 import re
@@ -127,31 +128,54 @@ def load_dataset(min_words = 3, pooled=False, by_books=False):
     # Generate word matrix
     word_map = word_dict(text_data)
     matrix = word_mat(text_data, word_map)
-    # Shuffle data
-    # np.random.seed(100)
-    perm = np.random.shuffle(np.arange(text_data.shape[0]))
-    matrix = matrix[perm, :].squeeze()
-    levels = levels[perm, :].squeeze()
     return matrix, levels, level_map
 
 def load_dataset_pooled(**kwargs):
     return load_dataset(pooled=True, **kwargs)
 
-# def load_dataset_books(pooled = True):
-#     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-#     valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
-#     text_data = np.array(valid_data['page_text'])
-#     level = np.array(valid_data['level'])
-#     n = len(level)
+def train_test_split(matrix, levels, c: float = 0.6):
+    """
+    Splits data into three datasets: train, test, and dev.
 
+    Args:
+        matrix (_type_): _description_
+        levels (_type_): _description_
+        c (float): Between 0 and 1, the percentage of data designated for training data. Dev and test data are split evenly
 
-def train_test_split(c, matrix, levels):
-    n = matrix.shape[0]
-    train_data = matrix[:int(n * c), :]
-    train_levels = levels[:int(n * c), :]
-    test_data = matrix[int(n * c) + 1:, :]
-    test_levels = levels[int(n * c) + 1:, :]
-    return train_data, train_levels, test_data, test_levels
+    Returns:
+        _type_: _description_
+    """
+    # Separate data by labels
+    n, m = levels.shape
+    train_data = []
+    dev_data = []
+    test_data = []
+    train_label = []
+    dev_label = []
+    test_label = []
+    for i in range(m):
+        # Sample separately by test, train, and dev set
+        mati = matrix[levels[:,i] == 1,:].squeeze()
+        levi = levels[levels[:,i] == 1,:].squeeze()
+        ni = sum(levels[:,i])
+        perm = np.random.shuffle(np.arange(ni))
+        mati = mati[perm, :].squeeze()
+        levi = levi[perm, :].squeeze()
+        c1 = int(ni * c)
+        c2 = int(ni * c + (1-c) / 2 * ni)
+        train_data += list(mati[:c1, :])
+        train_label += list(levi[:c1, :])
+        dev_data += list(mati[c1:c2, :])
+        dev_label += list(levi[c1:c2,:])
+        test_data += list(mati[c2:, :])
+        test_label += list(levi[c2:,:])
+    train_data = np.array(train_data)
+    train_label = np.array(train_label)
+    dev_data = np.array(dev_data)
+    dev_label = np.array(dev_label)
+    test_data = np.array(test_data)
+    test_label = np.array(test_label)
+    return train_data, train_label, dev_data, dev_label, test_data, test_label
 
 class classification_model:
     def __init__(self, filename = None, **kwargs):

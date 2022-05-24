@@ -23,8 +23,8 @@ logger.setLevel(logging.DEBUG)
 
 # Hyperparameters
 epochs = 500
-lr = 0.01
-reg = 0.15
+lr = 0.05
+reg = 0.2
 n_hidden = 200
 batch_size = 1000
 var_lr = False
@@ -291,8 +291,8 @@ def main():
     matrix, levels, level_map = util.load_dataset(pooled=True, by_books=True)
     n, n_features = matrix.shape
     _, n_levels = levels.shape
-    c = 0.75
-    train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
+    c = 0.6
+    train_data, train_levels, dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels, c)
     num_class = [sum(levels[:,i]) for i in range(n_levels)]
     for i in range(n_levels):
         print(f'Number of class {i}: {num_class[i]}')
@@ -301,7 +301,7 @@ def main():
     nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
     if load:
         nn.load_params(filenames)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=lr, var_lr = var_lr)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr)
     if save:
         nn.save(filenames)
     fig, (ax1, ax2) = plt.subplots(2, 1)
