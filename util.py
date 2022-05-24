@@ -138,12 +138,12 @@ def train_test_split(matrix, levels, c: float = 0.6):
     Splits data into three datasets: train, test, and dev.
 
     Args:
-        matrix (_type_): _description_
-        levels (_type_): _description_
+        matrix (2d np array): Matrix of input data
+        levels (2d np array): Matrix of one hot vectors (output)
         c (float): Between 0 and 1, the percentage of data designated for training data. Dev and test data are split evenly
 
     Returns:
-        _type_: _description_
+        train/dev/test_data/label: Split train, dev, and test data and labels as np arrays.
     """
     # Separate data by labels
     n, m = levels.shape
