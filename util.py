@@ -85,11 +85,17 @@ def word_mat(text_data, mapping):
             mat[i, mapping[word.lower()]] += 1
     return mat
 
+def pretrain_preprocessing(text_data):
+    text_processed = []
+    for text in text_data:
+        text_processed.append(re.sub(r'([^\.][\.?!]) ',r'\1 [SEP] ', text))
+    return text_processed
+
 def split(message:str):
     tmp = re.sub('â€™', "'",message)
     return re.sub(r'[^a-zA-Z0-9_\']+', ' ', tmp).split()
 
-def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer='default'):
+def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer=False):
     """
     Loads dataset from main dataset.
 
@@ -99,11 +105,14 @@ def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer='defaul
         by_books (bool): Whether or not dataset is pooled by books
 
     Returns:
-        _type_: _description_
+        matrix (n x d np array of [floats/ints]): Array of n examples of dimension d
+        levels (n x c np array of [0 / 1]): Array of n one-hot vectors
+        level_map (dict {Letter difficult : pool index}): Dictionary mapping letter difficulty rating to pooled index
     """
     # Loads data and processes
     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
     if by_books:
+        # print(raw_data.head())
         raw_data = raw_data.groupby('isbn').agg({'page_word_count':'sum', 'level':'max','page_num':'max','page_text':'sum'})
         pass
     valid_data = raw_data.loc[raw_data['page_word_count'] > min_words]
@@ -129,10 +138,10 @@ def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer='defaul
     # Generate word matrix
     word_map = word_dict(text_data)
     # matrix = word_mat(text_data, word_map)
-    if vectorizer == 'default':
+    if vectorizer:
+        matrix = vectorize_with_pretrained_embeddings(pretrain_preprocessing(list(text_data)))
+    else:
         matrix = word_mat(text_data, word_map)
-    elif vectorizer == 'pretrained':
-        matrix = vectorize_with_pretrained_embeddings(list(valid_data['page_text']))
     return matrix, levels, level_map
 
 def load_dataset_pooled(**kwargs):

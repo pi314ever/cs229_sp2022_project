@@ -21,22 +21,23 @@ logger.setLevel(logging.DEBUG)
 # logger.error(): For notifying failed attempts at calculation (i.e. any exception, bad data, etc.)
 #***
 
-# Hyperparameters
-epochs = 500
-lr = 0.05
-reg = 0.2
-n_hidden = 200
-batch_size = 1000
-var_lr = False
-# Filenames for saving parameters
-folder = f'./neural_network_parameters/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
-# folder = './neural_network_parameters/'
-filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
-figure_filename = './test.pdf'
+if __name__ == '__main__':
+    # Hyperparameters
+    epochs = 500
+    lr = 0.05
+    reg = 0.05
+    n_hidden = 200
+    batch_size = 100000
+    var_lr = False
+    # Filenames for saving parameters
+    folder = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
+    # folder = './neural_network_parameters/'
+    filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
+    figure_filename = './test.pdf'
 
-plot = True
-save = False
-load = False
+    plot = True
+    save = False
+    load = False
 
 class two_layer_neural_network(util.classification_model):
     """
@@ -178,6 +179,10 @@ class two_layer_neural_network(util.classification_model):
                     _, output, cost = self.forward_prop(dev_data, dev_labels)
                     cost_dev.append(cost)
                     accuracy_dev.append(self.accuracy(output, dev_labels))
+                # Check for termination conditions after several iterations
+                if epoch > 20:
+                    # Error is
+                    pass
         except KeyboardInterrupt:
             logger.info('Keyboard interrupted, stopping training process.')
             pass
@@ -288,7 +293,7 @@ class two_layer_neural_network(util.classification_model):
 # Testing function
 def main():
     # Gather data
-    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=True,vectorizer='pretrained')
+    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=False,vectorizer=True)
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.6
@@ -304,8 +309,8 @@ def main():
     cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr)
     if save:
         nn.save(filenames)
-    fig, (ax1, ax2) = plt.subplots(2, 1)
     if plot:
+        fig, (ax1, ax2) = plt.subplots(2, 1)
         ax1.plot(np.arange(len(cost_train)), cost_train,'r', label='train')
         ax1.plot(np.arange(len(cost_dev)), cost_dev, 'b', label='dev')
         ax1.set_xlabel('epochs')
@@ -318,8 +323,8 @@ def main():
         dev_labels = [f'dev {labels[i]}' for i in range(len(labels))]
 
         ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,:-1],':', label=train_labels[:-1])
-        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,-1],'r', label=train_labels[-1], linewidth=2)
         ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,:-1], '--', label=dev_labels[:-1])
+        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,-1],'r', label=train_labels[-1], linewidth=2)
         ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,-1],'b', label=dev_labels[-1],linewidth=2)
         ax2.set_xlabel('epochs')
         ax2.set_ylabel('accuracy')
