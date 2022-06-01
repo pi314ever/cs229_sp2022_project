@@ -288,7 +288,7 @@ class two_layer_neural_network(util.classification_model):
 # Testing function
 def main():
     # Gather data
-    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=True)
+    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=True,vectorizer='pretrained')
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.6

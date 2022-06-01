@@ -27,7 +27,7 @@ def vectorize_with_pretrained_embeddings(sentences):
   for sentence in sentences:
     with_tags = "[CLS]" + sentence + "[SEP]"
     tokenized_sentence = tokenizer.tokenize(with_tags)
-    print(tokenized_sentence)
+    # print(tokenized_sentence)
     indices_from_tokens = tokenizer.convert_tokens_to_ids(tokenized_sentence)
     segments_ids = [1] * len(indices_from_tokens)
     tokens_tensor = torch.tensor([indices_from_tokens])
@@ -40,13 +40,13 @@ def vectorize_with_pretrained_embeddings(sentences):
   print(embeddings[0].shape)
   embeddings = torch.cat(embeddings, dim = 0)
   print('Shape of embeddings tensor (n x d = 768): ', embeddings.shape)
-  return embeddings
+  return embeddings.cpu().detach().numpy()
 
 if __name__=="__main__":
 
   #Test sentences. To test, run 'python pretrained_model_vectorizer.py' at the command line
   sentences = ["The boy is running", "The dog has been barking for the whole evening"]
- 
+
   #To use with real data, import pretrained_model_vectorizer, then call
   #'vectorize_with_pretrained_embeddings' on your list of sentences to embed
   vectorize_with_pretrained_embeddings(sentences)

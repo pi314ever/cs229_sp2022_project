@@ -2,6 +2,7 @@ from cgi import test
 import numpy as np
 import pandas as pd
 import re
+from pretrained_model_vectorizer import vectorize_with_pretrained_embeddings
 
 #*** util.py
 # Summary: Library of utility functions for various functions and classes
@@ -88,7 +89,7 @@ def split(message:str):
     tmp = re.sub('â€™', "'",message)
     return re.sub(r'[^a-zA-Z0-9_\']+', ' ', tmp).split()
 
-def load_dataset(min_words = 3, pooled=False, by_books=False):
+def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer='default'):
     """
     Loads dataset from main dataset.
 
@@ -127,7 +128,11 @@ def load_dataset(min_words = 3, pooled=False, by_books=False):
         levels[i, level_map[level[i]]] = 1.
     # Generate word matrix
     word_map = word_dict(text_data)
-    matrix = word_mat(text_data, word_map)
+    # matrix = word_mat(text_data, word_map)
+    if vectorizer == 'default':
+        matrix = word_mat(text_data, word_map)
+    elif vectorizer == 'pretrained':
+        matrix = vectorize_with_pretrained_embeddings(list(valid_data['page_text']))
     return matrix, levels, level_map
 
 def load_dataset_pooled(**kwargs):
