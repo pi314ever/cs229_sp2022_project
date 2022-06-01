@@ -27,7 +27,6 @@ def vectorize_with_pretrained_embeddings(sentences):
   for sentence in sentences:
     with_tags = "[CLS]" + sentence + "[SEP]"
     tokenized_sentence = tokenizer.tokenize(with_tags)
-    print(tokenized_sentence)
     indices_from_tokens = tokenizer.convert_tokens_to_ids(tokenized_sentence)
     segments_ids = [1] * len(indices_from_tokens)
     tokens_tensor = torch.tensor([indices_from_tokens])
