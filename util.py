@@ -19,8 +19,8 @@ from pretrained_model_vectorizer import vectorize_with_pretrained_embeddings
 #***
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
-logging.basicConfig(format=FORMAT, stream=sys.stderr)
+# FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
+# logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -172,6 +172,7 @@ def train_test_split(matrix, levels, c: float = 0.6):
         mati = matrix[levels[:,i] == 1,:].squeeze()
         levi = levels[levels[:,i] == 1,:].squeeze()
         ni = sum(levels[:,i])
+        np.random.seed(100)
         perm = np.random.shuffle(np.arange(ni))
         mati = mati[perm, :].squeeze()
         levi = levi[perm, :].squeeze()
