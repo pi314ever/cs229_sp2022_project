@@ -68,12 +68,16 @@ def index2matrix(vec):
         out[i, idx] = 1
     return out
 
+
+
 def main():
     matrix, levels, _ = util.load_dataset()
+    matrix, levelsnum, _ = util.load_dataset_pooled()
     k = 3
     print(k)
     print("matrix shape", matrix.shape)
     print("grade_level",levels.shape)
+
 
     ## K means no change in matrix
     labels_tf= kmean_cluster(matrix,k)
@@ -89,12 +93,23 @@ def main():
 
     print("simple term frequency matrix")
     print(index2matrix(labels_tf).T @ levels)
-    # uv, xt = xtab(labels_tf, levels)
+    print("clustered levels", levelsnum.shape, np.unique(levelsnum))
+
+    
+    print("against 3 levels: simple term frequency matrix")
+    print(index2matrix(labels_tf).T @ levelsnum)
+
+    # print("with xtab")
+    # uv, xt = xtab(labelstf, levels)
     # print(uv)
     # print(xt)
 
-    print("term frequency matrix")
+    print("tf idf matrix")
     print(index2matrix(labels_tfidf).T @ levels)
+
+    print("3 levels: tf idf matrix")
+    print(index2matrix(labels_tfidf).T @ levelsnum)
+
     # uvidf, xtidf = xtab(labels_tfidf, levels)
     # print(uvidf)
     # print(xtidf)
@@ -106,6 +121,8 @@ def main():
     labels_tf= kmean_cluster(matrix,k)
     print("Vectorized inputs")
     print(index2matrix(labels_tf).T @ levels)
+    print("against 3 levels: Vectorized inputs")
+    print(index2matrix(labels_tf).T @ levelsnum)
 
 
 # Testing function
