@@ -1,11 +1,8 @@
 import numpy as np
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import pandas as pd
-# import matplotlib.pyplot as plt
 
-#*** naive_bayes.py
-# Summary: Contains a class for naive bayes multi-class classifier
+#*** cs229_kmeans.py
+# Summary: Contains and tests k-means on various representations of the dataset
 #***
 
 import util
@@ -17,12 +14,8 @@ import util
 # logger.error(): For notifying failed attempts at calculation (i.e. any exception, bad data, etc.)
 #***
 
-"""
-    Naive bayes multinomial event model for multi-class classification
-    """
 
 def tfidf(matrix):
-
     """"
     Args:
         term frequency
@@ -40,16 +33,13 @@ def tfidf(matrix):
     tf_idf= tf * idf
     return tf, tf_idf
 
-
-    
-
-
 def kmean_cluster(matrix, num_cluster=3):
     """"
     Args:
-    Number of clusters
+        matrix (n x d np array): Matrix of n examples of dimension d
+        num_cluster (int): Number of clusters for kmeans
     Returns:
-    Sentences mapped to classification levels
+        labels (size n array): Vector of indices for each example to the classification
     """
     labels= KMeans(n_clusters= num_cluster, random_state=0).fit_predict(matrix)
     return labels
@@ -59,60 +49,63 @@ def xtab(*cols):
     shape_xt = [uniq_vals_col.size for uniq_vals_col in uniq_vals_all_cols]
     xt = np.zeros(shape_xt, dtype='uint')
     wt=1
+    print(shape_xt, idx)
     np.add.at(xt, idx, wt)
     return uniq_vals_all_cols, xt
 
-def main():
+def index2matrix(vec):
+    """
+    Creates a matrix of one hot vectors out of a vector of indices
 
-    matrix, grade_level, levels, level_map = util.load_dataset_pooled()
-    n, n_features = matrix.shape
-    _, n_levels = levels.shape
-    c = 0.75
-    print(n_levels)
+    Args:
+        vec (1d iterable): Vector of indices
+
+    Returns:
+        matrix: Matrix of one-hot vectors
+    """
+    out = np.zeros((len(vec), max(vec) + 1))
+    for i, idx in enumerate(vec):
+        out[i, idx] = 1
+    return out
+
+def main():
+    matrix, levels, _ = util.load_dataset()
+    k = 3
+    print(k)
     print("matrix shape", matrix.shape)
-    print("grade_level",grade_level.shape, grade_level)
+    print("grade_level",levels.shape)
 
     ## K means no change in matrix
-    labels_tf= kmean_cluster(matrix,n_levels)
+    labels_tf= kmean_cluster(matrix,k)
     print(labels_tf.shape)
     print(levels.shape)
-    print(np.unique(labels_tf))
+    # print(np.unique(labels_tf))
 
     ## K modified terms matrix
     matrix_tf, matrix_tfidf= tfidf(matrix)
-    print("tfidf", matrix_tfidf.shape, matrix_tfidf)
-    labels_tfidf= kmean_cluster(matrix_tfidf,n_levels)
-    print(np.unique(labels_tfidf))
+    # print("tfidf", matrix_tfidf.shape)
+    labels_tfidf= kmean_cluster(matrix_tfidf,k)
+    # print(np.unique(labels_tfidf))
 
-
-
-    uv, xt = xtab(labels_tf, grade_level)
     print("simple term frequency matrix")
-    print(uv)
-    print(xt)
+    print(index2matrix(labels_tf).T @ levels)
+    # uv, xt = xtab(labels_tf, levels)
+    # print(uv)
+    # print(xt)
 
+    print("term frequency matrix")
+    print(index2matrix(labels_tfidf).T @ levels)
+    # uvidf, xtidf = xtab(labels_tfidf, levels)
+    # print(uvidf)
+    # print(xtidf)
 
-    uvidf, xtidf = xtab(labels_tfidf, grade_level)
-    print("term frequency  matrix")
-    print(uvidf)
-    print(xtidf)
+    # Using vectorizer
+    matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
 
-    
-
-
-
-
-
-    #plt.scatter(labels_tf, grade_level)
-    #plt.show()
-    # pd.crosstab(labels_tf, grade_level)
-    # foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    # bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
-    # pd.crosstab(foo, bar)
-
-    
-
-    
+    ## K means no change in matrix
+    labels_tf= kmean_cluster(matrix,k)
+    print("Vectorized inputs")
+    print(index2matrix(labels_tf).T @ levels)
 
 
 # Testing function

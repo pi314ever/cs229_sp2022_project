@@ -8,9 +8,11 @@ import matplotlib.pyplot as plt
 
 import util
 
-import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
-logging.basicConfig(filename='./neural_network_files/nn.log', filemode='a',format=FORMAT) # stream=sys.stderr
+import logging # For debugging purposes
+# import sys
+if __name__ == '__main__':
+    FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
+    logging.basicConfig(filename='./neural_network_files/nn.log', filemode='a',format=FORMAT, level=logging.DEBUG) # stream=sys.stderr
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -77,7 +79,8 @@ class two_layer_neural_network(util.classification_model):
         # Initialize weights
         # np.random.seed(100) # For reproducibility
         sigma = 1
-        self.W = [np.random.normal(0,sigma, (self.num_hidden, self.num_features)), np.random.normal(0,sigma,(self.num_classes, self.num_hidden))]
+        rng = np.random.default_rng(100)
+        self.W = [rng.normal(0,sigma, (self.num_hidden, self.num_features)), rng.normal(0,sigma,(self.num_classes, self.num_hidden))]
         self.b = [np.zeros((self.num_hidden, 1)), np.zeros((self.num_classes, 1))]
     def load_params(self, header:str, **kwargs):
         """
@@ -132,21 +135,27 @@ class two_layer_neural_network(util.classification_model):
         """
         Fits neural network based on training data and training labels using batch gradient descent (Can convert to GD if batch size = number of examples)
 
+        Aliases:
+            nt: Number of training examples
+            nd: Number of dev examples
+            d: num_features
+            c: num_classes
+
         Args:
-            train_data (2d array)
-            train_labels (2d array)
+            train_data (nt x d array)
+            train_labels (nt x c array)
             batch_size (int)
             num_epochs (int, optional): Number of epochs for training. Defaults to 30.
             learning_rate (float, optional): Batch GD learning rate. Defaults to 5.
-            dev_data (2d array, optional): Development data, for use in comparing incremental increases. Defaults to None.
-            dev_labels (2d array, optional): Developmental labels, for use in comparing incremental increases. Defaults to None.
+            dev_data (nd x d array, optional): Development data, for use in comparing incremental increases. Defaults to None.
+            dev_labels (nd x c array, optional): Developmental labels, for use in comparing incremental increases. Defaults to None.
             var_lr (bool): Whether or not the learning rate is decreasing
 
         Returns:
-            cost_train: Cost history for training data
-            accuracy_train: Accuracy history for training data
-            cost_dev: Cost history for dev data (if provided)
-            accuracy_dev: Accuracy history of dev data (if provided)
+            cost_train (epochs x 1 np array): Cost history for training data
+            accuracy_train (epochs x (c+1) np array): Accuracy history for training data
+            cost_dev (epochs x 1 np array): Cost history for dev data (if provided)
+            accuracy_dev (epochs x (c+1) np array): Accuracy history of dev data (if provided)
         """
         logger.info(f'Fitting neural network with {self.num_features} features to {self.num_classes} classes with {self.reg} regularization and {self.num_hidden} hidden nodes')
         # Check for proper dimensions
@@ -160,13 +169,15 @@ class two_layer_neural_network(util.classification_model):
         accuracy_train = []
         begin = time()
         try:
+            if self.verbose:
+                logger.info('Start training')
             for epoch in range(num_epochs):
                 # Shuffle training data
                 perm = np.random.shuffle(np.arange(train_data.shape[0]))
                 train_data = train_data[perm, :].squeeze()
                 train_labels = train_labels[perm, :].squeeze()
-                if self.verbose:
-                    logger.info(f'Epoch {epoch + 1} of {num_epochs}')
+                # if self.verbose:
+                    # logger.info(f'Epoch {epoch + 1} of {num_epochs}')
                 if var_lr:
                     learning_rate /= np.log(np.log(0.1 * epoch + 1) + 1) + 1
                 # Perform gradient descent
@@ -199,7 +210,7 @@ class two_layer_neural_network(util.classification_model):
             raise e
         end = time()
         if self.verbose:
-            logger.info(f'Training took {(end - begin)/60:.2f} minutes, average {(end - begin) / (epoch + 1):.6f} sec / epoch')
+            logger.info(f'Training took {(end - begin)/60:.2f} minutes, average {(end - begin) / (epoch + 1):.6f} sec / epoch over {epoch + 1} epochs')
         if has_dev:
             return np.array(cost_train), np.array(accuracy_train), np.array(cost_dev), np.array(accuracy_dev)
         else:
