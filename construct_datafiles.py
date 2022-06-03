@@ -1,9 +1,10 @@
 """Make a zip file for submission."""
 
 import os
+from tkinter import Y
 import pandas as pd
 import sys
-import re
+import util
 
 SRC_EXT = '.xlsx'
 
@@ -46,7 +47,7 @@ def make_datafiles():
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(re.split(' |\r|\n',pg)))
+                            wc.append(len(util.split(pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch1')
@@ -69,7 +70,7 @@ def make_datafiles():
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(re.split(' |\r|\n',pg)))
+                            wc.append(len(util.split(pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch2')
@@ -93,7 +94,7 @@ def make_datafiles():
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(re.split(' |\r|\n',pg)))
+                            wc.append(len(util.split(pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch3')
@@ -118,7 +119,7 @@ def make_datafiles():
                                 pg = ""
                             isbns.append(isbn)
                             pages.append(pg)
-                            wc.append(len(re.split(' |\r|\n',pg)))
+                            wc.append(len(util.split(pg)))
                             levels.append(isbn_level_dictionary[int(isbn)])
                             titles.append(isbn_title_dictionary[int(isbn)])
                             batch.append('batch4')

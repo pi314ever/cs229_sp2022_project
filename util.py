@@ -1,6 +1,8 @@
+from cgi import test
 import numpy as np
 import pandas as pd
 import re
+from pretrained_model_vectorizer import vectorize_with_pretrained_embeddings
 
 #*** util.py
 # Summary: Library of utility functions for various functions and classes
@@ -17,8 +19,8 @@ import re
 #***
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
-logging.basicConfig(format=FORMAT, stream=sys.stderr)
+# FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
+# logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -83,81 +85,112 @@ def word_mat(text_data, mapping):
             mat[i, mapping[word.lower()]] += 1
     return mat
 
-def split(message:str):
-    return re.split(' |\r|\n', message)
+def pretrain_preprocessing(text_data):
+    text_processed = []
+    for text in text_data:
+        text_processed.append(re.sub(r'([^\.][\.?!]) ',r'\1 [SEP] ', text))
+    return text_processed
 
-def load_dataset(pooled=False, by_books=False):
+def split(message:str):
+    tmp = re.sub('â€™', "'",message)
+    return re.sub(r'[^a-zA-Z0-9_\']+', ' ', tmp).split()
+
+def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer=False):
     """
     Loads dataset from main dataset.
 
+    Arguments:
+        min_words (int): Minimum number of words in dataset to be considered
+        pooled (bool): Whether or not books are pooled into 3 catagories only
+        by_books (bool): Whether or not dataset is pooled by books
+
     Returns:
-        _type_: _description_
+        matrix (n x d np array of [floats/ints]): Array of n examples of dimension d
+        levels (n x c np array of [0 / 1]): Array of n one-hot vectors
+        level_map (dict {Letter difficult : pool index}): Dictionary mapping letter difficulty rating to pooled index
     """
     # Loads data and processes
     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
+    if by_books:
+        # print(raw_data.head())
+        raw_data = raw_data.groupby('isbn').agg({'page_word_count':'sum', 'level':'max','page_num':'max','page_text':'sum'})
+        pass
+    valid_data = raw_data.loc[raw_data['page_word_count'] > min_words]
     text_data = np.array(valid_data['page_text'])
     level = np.array(valid_data['level'])
     n = len(level)
-    # Obtain unique levels
-    unique_levels = list(set(level))
-    unique_levels.sort()
+    if pooled:
+        pools = [['A','B','C','D'],['E','F','G','H','I','J'],['K','L','M','N']]
+    else:
+        # Obtain unique levels
+        pools = list(set(level))
+        pools.sort()
+        pools = [[pools[i]] for i in range(len(pools))]
     # Maps letter to index
     level_map = dict()
-    for i, letter in enumerate(unique_levels):
-        level_map[letter] = i
+    for i, pool in enumerate(pools):
+        for element in pool:
+            level_map[element] = i
     # Generates levels matrix (list of one hot vectors)
-    levels = np.zeros((n, len(level_map)))
+    levels = np.zeros((n, len(pools)))
     for i in range(n):
         levels[i, level_map[level[i]]] = 1.
     # Generate word matrix
     word_map = word_dict(text_data)
-    matrix = word_mat(text_data, word_map)
-    # Shuffle data
-    # np.random.seed(100)
-    perm = np.random.shuffle(np.arange(text_data.shape[0]))
-    matrix = matrix[perm, :].squeeze()
-    levels = levels[perm, :].squeeze()
+    # matrix = word_mat(text_data, word_map)
+    if vectorizer:
+        matrix = vectorize_with_pretrained_embeddings(pretrain_preprocessing(list(text_data)))
+    else:
+        matrix = word_mat(text_data, word_map)
     return matrix, levels, level_map
 
-def load_dataset_pooled():
-    raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-    valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
-    text_data = np.array(valid_data['page_text'])
-    level = np.array(valid_data['level'])
-    n = len(level)
-    level_map = dict()
-    grade_levels = [['A','B','C','D'],['E','F','G','H','I','J'],['K','L','M','N']]
-    for i, grades in enumerate(grade_levels):
-        for grade in grades:
-            level_map[grade] = i
-    levels = np.zeros((n, 3))
-    for i  in range(n):
-        levels[i, level_map[level[i]]] = 1.
-    word_map = word_dict(text_data)
-    matrix = word_mat(text_data, word_map)
-    # Shuffle data
-    # np.random.seed(100)
-    perm = np.random.shuffle(np.arange(text_data.shape[0]))
-    matrix = matrix[perm, :].squeeze()
-    levels = levels[perm, :].squeeze()
-    return matrix, level, levels, level_map
+def load_dataset_pooled(**kwargs):
+    return load_dataset(pooled=True, **kwargs)
 
-# def load_dataset_books(pooled = True):
-#     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
-#     valid_data = raw_data.loc[raw_data['page_word_count'] > 10]
-#     text_data = np.array(valid_data['page_text'])
-#     level = np.array(valid_data['level'])
-#     n = len(level)
+def train_test_split(matrix, levels, c: float = 0.6):
+    """
+    Splits data into three datasets: train, test, and dev.
 
+    Args:
+        matrix (2d np array): Matrix of input data
+        levels (2d np array): Matrix of one hot vectors (output)
+        c (float): Between 0 and 1, the percentage of data designated for training data. Dev and test data are split evenly
 
-def train_test_split(c, matrix, levels):
-    n = matrix.shape[0]
-    train_data = matrix[:int(n * c), :]
-    train_levels = levels[:int(n * c), :]
-    test_data = matrix[int(n * c) + 1:, :]
-    test_levels = levels[int(n * c) + 1:, :]
-    return train_data, train_levels, test_data, test_levels
+    Returns:
+        train/dev/test_data/label: Split train, dev, and test data and labels as np arrays.
+    """
+    # Separate data by labels
+    n, m = levels.shape
+    train_data = []
+    dev_data = []
+    test_data = []
+    train_label = []
+    dev_label = []
+    test_label = []
+    for i in range(m):
+        # Sample separately by test, train, and dev set
+        mati = matrix[levels[:,i] == 1,:].squeeze()
+        levi = levels[levels[:,i] == 1,:].squeeze()
+        ni = sum(levels[:,i])
+        np.random.seed(100)
+        perm = np.random.shuffle(np.arange(ni))
+        mati = mati[perm, :].squeeze()
+        levi = levi[perm, :].squeeze()
+        c1 = int(ni * c)
+        c2 = int(ni * c + (1-c) / 2 * ni)
+        train_data += list(mati[:c1, :])
+        train_label += list(levi[:c1, :])
+        dev_data += list(mati[c1:c2, :])
+        dev_label += list(levi[c1:c2,:])
+        test_data += list(mati[c2:, :])
+        test_label += list(levi[c2:,:])
+    train_data = np.array(train_data)
+    train_label = np.array(train_label)
+    dev_data = np.array(dev_data)
+    dev_label = np.array(dev_label)
+    test_data = np.array(test_data)
+    test_label = np.array(test_label)
+    return train_data, train_label, dev_data, dev_label, test_data, test_label
 
 class classification_model:
     def __init__(self, filename = None, **kwargs):

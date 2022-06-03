@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import util
 
 import logging, sys # For debugging purposes
-FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] - %(funcName)10s(): %(message)s"
-logging.basicConfig(format=FORMAT, stream=sys.stderr)
+FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
+logging.basicConfig(filename='./neural_network_files/nn.log', filemode='a',format=FORMAT) # stream=sys.stderr
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -21,20 +21,23 @@ logger.setLevel(logging.DEBUG)
 # logger.error(): For notifying failed attempts at calculation (i.e. any exception, bad data, etc.)
 #***
 
-# Hyperparameters
-epochs = 200
-lr = 0.01
-reg = 0.2
-n_hidden = 500
-# Filenames for saving parameters
-folder = f'./neural_network_parameters/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
-# folder = './neural_network_parameters/'
-filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
-figure_filename = './test.pdf'
+if __name__ == '__main__':
+    # Hyperparameters
+    epochs = 500
+    lr = 0.05
+    reg = 0.05
+    n_hidden = 200
+    batch_size = 100000
+    var_lr = False
+    # Filenames for saving parameters
+    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
+    # folder = './neural_network_parameters/'
+    # filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
+    figure_filename = './test.pdf'
 
-plot = True
-save = False
-load = False
+    plot = True
+    save = False
+    load = False
 
 class two_layer_neural_network(util.classification_model):
     """
@@ -65,6 +68,7 @@ class two_layer_neural_network(util.classification_model):
         self.num_hidden = num_hidden
         self.reg = reg
         self.verbose = verbose
+        self.err = nn_error()
         # Load parameters
         super().__init__(filenames, **kwargs)
     def init_params(self):
@@ -75,21 +79,21 @@ class two_layer_neural_network(util.classification_model):
         sigma = 1
         self.W = [np.random.normal(0,sigma, (self.num_hidden, self.num_features)), np.random.normal(0,sigma,(self.num_classes, self.num_hidden))]
         self.b = [np.zeros((self.num_hidden, 1)), np.zeros((self.num_classes, 1))]
-    def load_params(self, filenames, **kwargs):
+    def load_params(self, header:str, **kwargs):
         """
         Load parameters with np.loadtxt()
 
         Args:
-            filenames (list of str): File location where the dataset of weights can be loaded. Order: [W1, W2, b1, b2].
+            header (str): File location where the dataset of weights can be loaded.
             **kwargs: Keyword arguments to be passed to np.loadtxt()
 
         Raises:
             e: Assertion errors for mismatched shape
         """
+        filenames = [header + 'W1.txt.gz', header + 'W2.txt.gz',header + 'b1.txt.gz',header + 'b2.txt.gz']
         if self.verbose:
-            logger.info(f'Loading dataset from {filenames}')
+            logger.info(f'Loading dataset from {header}')
         try:
-            assert(len(filenames) == 4)
             self.W = [np.array([]), np.array([])]
             self.b = [np.array([]), np.array([])]
             self.W[0] = np.loadtxt(filenames[0], ndmin=2, **kwargs)
@@ -109,22 +113,22 @@ class two_layer_neural_network(util.classification_model):
         except Exception as e:
             logger.error('Failed to load files, mismatched shape')
             raise e
-    def save(self, filenames, **kwargs):
+    def save(self, header:str, **kwargs):
         """
         Saves parameters to filenames using np.savetxt()
 
         Args:
-            filenames (list of str): File location where the dataset of weights can be saved. Order: [W1, W2, b1, b2].
+            header (str): Header to the file location where the dataset of weights can be saved. ex: header='test_' -> 'test_W1.txt.gz' for the file that contains W1.
             **kwargs: Keyword arguments to be passed to np.savetxt()
         """
+        filenames = [header + 'W1.txt.gz', header + 'W2.txt.gz',header + 'b1.txt.gz',header + 'b2.txt.gz']
         if self.verbose:
-            logger.info(f'Saving parameters to {filenames}')
-        assert(len(filenames) == 4)
+            logger.info(f'Saving parameters to {header}')
         np.savetxt(filenames[0], self.W[0], **kwargs)
         np.savetxt(filenames[1], self.W[1], **kwargs)
         np.savetxt(filenames[2], self.b[0], **kwargs)
         np.savetxt(filenames[3], self.b[1], **kwargs)
-    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None):
+    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None, var_lr = False):
         """
         Fits neural network based on training data and training labels using batch gradient descent (Can convert to GD if batch size = number of examples)
 
@@ -136,6 +140,7 @@ class two_layer_neural_network(util.classification_model):
             learning_rate (float, optional): Batch GD learning rate. Defaults to 5.
             dev_data (2d array, optional): Development data, for use in comparing incremental increases. Defaults to None.
             dev_labels (2d array, optional): Developmental labels, for use in comparing incremental increases. Defaults to None.
+            var_lr (bool): Whether or not the learning rate is decreasing
 
         Returns:
             cost_train: Cost history for training data
@@ -162,6 +167,8 @@ class two_layer_neural_network(util.classification_model):
                 train_labels = train_labels[perm, :].squeeze()
                 if self.verbose:
                     logger.info(f'Epoch {epoch + 1} of {num_epochs}')
+                if var_lr:
+                    learning_rate /= np.log(np.log(0.1 * epoch + 1) + 1) + 1
                 # Perform gradient descent
                 self.gradient_descent_epoch(train_data, train_labels, learning_rate, batch_size)
                 # Gather current epoch information
@@ -173,14 +180,26 @@ class two_layer_neural_network(util.classification_model):
                     _, output, cost = self.forward_prop(dev_data, dev_labels)
                     cost_dev.append(cost)
                     accuracy_dev.append(self.accuracy(output, dev_labels))
+                # Check for termination conditions after several iterations
+                if epoch > 20:
+                    if sum(np.abs(np.array(accuracy_dev)[-19:,-1] - np.array(accuracy_dev)[-20:-1,-1])) > 1.5:
+                        # Error is fluctuating too much
+                        self.err.set_code(1)
+                        break
+                    if np.abs(cost_dev[-1] - cost_dev[-2]) < 1e-4:
+                        # Loss stabilized
+                        self.err.set_code(2, train_cost = cost_train[-1], train_acc = accuracy_train[-1][-1],dev_cost = cost_dev[-1], dev_acc = accuracy_dev[-1][-1])
+                        break
+
         except KeyboardInterrupt:
             logger.info('Keyboard interrupted, stopping training process.')
+            self.err.set_code(100, iter = epoch + 1)
             pass
         except Exception as e:
             raise e
         end = time()
         if self.verbose:
-            logger.info(f'Training took {(end - begin)/60} minutes')
+            logger.info(f'Training took {(end - begin)/60:.2f} minutes, average {(end - begin) / (epoch + 1):.6f} sec / epoch')
         if has_dev:
             return np.array(cost_train), np.array(accuracy_train), np.array(cost_dev), np.array(accuracy_dev)
         else:
@@ -264,8 +283,8 @@ class two_layer_neural_network(util.classification_model):
         n = data.shape[0]
         dCEdz2 = labels - output
         dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
-        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + self.reg * self.W[0])
-        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + self.reg * self.W[1])
+        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + 2 * self.reg * self.W[0])
+        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + 2 * self.reg * self.W[1])
         self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
         self.b[1] -= -(learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
     def predict(self, data):
@@ -280,14 +299,32 @@ class two_layer_neural_network(util.classification_model):
             pred[i, np.argmax(output[i,:])] = 1
         return pred
 
+
+class nn_error:
+    def __init__(self) -> None:
+        self.code = 0
+    def set_code(self, code:int, **kwargs) -> None:
+        self.code = code
+        self.kwargs = kwargs
+        pass
+    def __repr__(self) -> str:
+        if self.code == 0:
+            return 'No errors found'
+        if self.code == 1:
+            return 'ERROR: Accuracy is fluctuating too much, try reducing learning rate for more stability.'
+        if self.code == 2:
+            return f'Stabilized with train cost {self.kwargs["train_cost"]} and dev cost {self.kwargs["dev_cost"]}\n\ttrain accuracy {self.kwargs["train_acc"]} and dev accuracy {self.kwargs["dev_acc"]}'
+        if self.code == 100:
+            return f'ERROR: Keyboard interrupted at iteration {self.kwargs["iter"]}. Model may not have converged yet.'
+
 # Testing function
 def main():
     # Gather data
-    matrix, levels, level_map = util.load_dataset_pooled()
+    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=False,vectorizer=True)
     n, n_features = matrix.shape
     _, n_levels = levels.shape
-    c = 0.75
-    train_data, train_levels, test_data, test_levels = util.train_test_split(c, matrix, levels)
+    c = 0.6
+    train_data, train_levels, dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels, c)
     num_class = [sum(levels[:,i]) for i in range(n_levels)]
     for i in range(n_levels):
         print(f'Number of class {i}: {num_class[i]}')
@@ -295,12 +332,12 @@ def main():
     # Train nn
     nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
     if load:
-        nn.load_params(filenames)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=n, num_epochs=epochs, dev_data=test_data, dev_labels=test_levels,learning_rate=lr)
+        nn.load_params(header)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr)
     if save:
-        nn.save(filenames)
-    fig, (ax1, ax2) = plt.subplots(2, 1)
+        nn.save(header)
     if plot:
+        fig, (ax1, ax2) = plt.subplots(2, 1)
         ax1.plot(np.arange(len(cost_train)), cost_train,'r', label='train')
         ax1.plot(np.arange(len(cost_dev)), cost_dev, 'b', label='dev')
         ax1.set_xlabel('epochs')
@@ -313,8 +350,8 @@ def main():
         dev_labels = [f'dev {labels[i]}' for i in range(len(labels))]
 
         ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,:-1],':', label=train_labels[:-1])
-        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,-1],'r', label=train_labels[-1], linewidth=2)
         ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,:-1], '--', label=dev_labels[:-1])
+        ax2.plot(np.arange(len(accuracy_train)), accuracy_train[:,-1],'r', label=train_labels[-1], linewidth=2)
         ax2.plot(np.arange(len(accuracy_dev)), accuracy_dev[:,-1],'b', label=dev_labels[-1],linewidth=2)
         ax2.set_xlabel('epochs')
         ax2.set_ylabel('accuracy')
