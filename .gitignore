@@ -7,3 +7,8 @@ __pycache__
 test*
 .ipynb_checkpoints/
 *.ipynb
+
+# Temporary gitignore for hyperparameter tuning files while under development
+neural_network_files/*/
+*.log
+!/neural_network_files/plots/

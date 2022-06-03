@@ -1,0 +1,9 @@
+name: cs229_project
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - transformers
+  - pandas
+  - matplotlib
+  - scikit-learn
