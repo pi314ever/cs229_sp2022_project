@@ -1,7 +1,5 @@
 import numpy as np
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import pandas as pd
 
 #*** cs229_kmeans.py
 # Summary: Contains and tests k-means on various representations of the dataset
@@ -72,7 +70,7 @@ def index2matrix(vec):
 
 def main():
     matrix, levels, _ = util.load_dataset()
-    k = 2
+    k = 3
     print(k)
     print("matrix shape", matrix.shape)
     print("grade_level",levels.shape)
@@ -102,7 +100,7 @@ def main():
     # print(xtidf)
 
     # Using vectorizer
-    matrix, levels, _ = util.load_dataset(vectorizer=True)
+    matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
 
     ## K means no change in matrix
     labels_tf= kmean_cluster(matrix,k)
