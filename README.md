@@ -13,27 +13,34 @@ If things are set up correctly, the dataset should not be included in `git statu
 
 ## TODO list
 
+### Data analysis
+
+- [ ] Isolate and refine hyperparameter search
+- [ ] Create plots for k-means
+- [ ] Create plots for hyperparameter search
+- [ ] Clean up k-means
+
 ### `util.py`
 
-- [ ] Unify `util.load_dataset` API with more dataset filter options
-  - [ ] Group by books (much less data, but more descriptive)
+- [x] Unify `util.load_dataset` API with more dataset filter options
+  - [x] Group by books (much less data, but more descriptive)
   - [ ] Appending other features into feature list
     - Total number of words in the book
     - Average length of sentences
     - Unique words
     - Sentence repetition?
-- [ ] Encode the chunks of data using a NLP vectorizer?
+- [x] Encode the chunks of data using a NLP vectorizer?
 
 ### `neural_network.py`
 
-- [ ] Implement n-layer model
-- [ ] Develop code to auto-test multiple
+- [x] Develop code to auto-test multiple
 - [x] Complete neural network class (Daniel)
   - [x] fit()
   - [x] forward_prop()
   - [x] backward_prop()
   - [x] predict()
 - [x] Write basic neural network test
+- [ ] <s>Implement n-layer model</s>
 
 ### `naive_bayes.py`
 
@@ -53,5 +60,5 @@ If things are set up correctly, the dataset should not be included in `git statu
 
 ### Other
 
-- [ ] Develop k-means model
-- [ ] Import other language models?
+- [x] Develop k-means model
+- [x] Import other language models?
