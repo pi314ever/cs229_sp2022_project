@@ -141,7 +141,7 @@ def load_dataset_pooled():
     perm = np.random.shuffle(np.arange(text_data.shape[0]))
     matrix = matrix[perm, :].squeeze()
     levels = levels[perm, :].squeeze()
-    return matrix, levels, level_map
+    return matrix, level, levels, level_map
 
 # def load_dataset_books(pooled = True):
 #     raw_data = load_csv('../cs229_sp22_dataset/full_processed_dataset.csv')
