@@ -10,4 +10,5 @@ test*
 
 # Temporary gitignore for hyperparameter tuning files while under development
 neural_network_files/*/
-nn.log
+*.log
+!/neural_network_files/plots/
