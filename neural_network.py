@@ -51,6 +51,12 @@ class n_layer_neural_network(util.classification_model):
 
     All data must be shaped as (num_examples, num_features)
     All labels must be shaped as (num_examples, num_classes)
+
+    Usage:
+    Example with 4 layers with sigmoid activation functions
+        nn = n_layer_neural_network(n, 100, 4, c, [util.sigmoid] * 4, [util.dsigmoid] * 4, reg=reg, verbose=True)
+        nn.fit(...)
+        nn.predict(...)
     """
     def __init__(self, num_features:int, num_hidden:int, num_hidden_layers:int, num_classes:int, activation_func, d_activation_func, reg=0, filenames = None, verbose = False, **kwargs):
         """

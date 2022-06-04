@@ -18,11 +18,10 @@ from pretrained_model_vectorizer import vectorize_with_pretrained_embeddings
 #   model(): Base model with basic model parameters and structure
 #***
 
-import logging, sys # For debugging purposes
+import logging # For debugging purposes
 # FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
 # logging.basicConfig(format=FORMAT, stream=sys.stderr)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 def softmax(x, ax=1, debug=False):
     """
