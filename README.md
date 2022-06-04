@@ -33,6 +33,7 @@ If things are set up correctly, the dataset should not be included in `git statu
 
 ### `neural_network.py`
 
+- [x] Implement n-layer model
 - [x] Develop code to auto-test multiple
 - [x] Complete neural network class (Daniel)
   - [x] fit()
@@ -40,7 +41,6 @@ If things are set up correctly, the dataset should not be included in `git statu
   - [x] backward_prop()
   - [x] predict()
 - [x] Write basic neural network test
-- [ ] <s>Implement n-layer model</s>
 
 ### `naive_bayes.py`
 
