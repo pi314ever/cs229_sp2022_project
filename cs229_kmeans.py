@@ -70,7 +70,7 @@ def index2matrix(vec):
 
 def main():
     matrix, levels, _ = util.load_dataset()
-    k = 3
+    k = 14
     print(k)
     print("matrix shape", matrix.shape)
     print("grade_level",levels.shape)

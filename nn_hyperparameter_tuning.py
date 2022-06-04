@@ -7,22 +7,24 @@ from os import mkdir
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
+from datetime import datetime
 
 if __name__ == '__main__':
     import logging # For debugging purposes
     # import sys
     FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
-    logging.basicConfig(filename='./neural_network_files/nn_hyperparameter_run.log',format=FORMAT, level=logging.INFO) # stream=sys.stderr
+    TIME = datetime.now().strftime("%d-%m-%Y_%H_%M_%S")
+    logging.basicConfig(filename=f'./neural_network_files/nn_hyperparameter_run_{TIME}.log',format=FORMAT, level=logging.INFO) # stream=sys.stderr
 
 logger = logging.getLogger(__name__)
 
-def single_test(train_data, train_levels, dev_data, dev_levels, epochs, lr, reg, n_hidden, batch_size):
+def single_test(train_data, train_levels, dev_data, dev_levels, epochs, lr, reg, n_hidden, batch_size, print_epochs = False):
     n_features = train_data.shape[1]
     n_levels = train_levels.shape[1]
     logger.info(f'Single test for neural network with {n_features} features, {n_hidden} hidden neurons, and {n_levels} classes.')
     logger.info(f'\tHyperparameters: lr = {lr}, reg = {reg}, batch_size = {batch_size}, max_epochs = {epochs}')
     nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, print_epochs=print_epochs)
     if nn.err.code:
         print(nn.err)
     return nn, cost_train, accuracy_train, cost_dev, accuracy_dev
@@ -125,7 +127,7 @@ def plot(cost_train, accuracy_train, cost_dev, accuracy_dev, num_classes, filena
     fig.savefig(filename)
 
 
-def main():
+def hyperparameter_sweep():
     # Hyperparameter ranges
     max_epoch = 500
     lr_steps = [0.05, 0.1, 0.4]
@@ -170,4 +172,30 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # hyperparameter_sweep()
+    matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
+    levels = np.loadtxt('./neural_network_files/levels.txt.gz')
+    levels_all = util.load_dataset(pooled=False)[1]
+    train_data, train_levels, dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels)
+    test_levels_all = util.train_test_split(matrix, levels_all)[-1]
+    epochs = 500
+    lr = 0.008
+    reg = 0.008
+    hidden = 300
+    batch_size = 100
+    plot_file = './test_plot.png'
+    type = 'Vectorized'
+    key = f'H{hidden}B{batch_size}L{lr}R{reg}'
+    nn, cost_train, accuracy_train, cost_dev, accuracy_dev = single_test(train_data, train_levels, dev_data, dev_levels, epochs, lr, reg, hidden, batch_size, print_epochs = True)
+    plot(cost_train, accuracy_train, cost_dev, accuracy_dev, nn.num_classes, plot_file, type, key)
+    pred = nn.predict_one_hot(matrix)
+    # Prediction matrix
+    print((pred.T @ levels_all).astype(int))
+    print((pred.T @ levels).astype(int))
+    # For test set
+    print('Test set:')
+    pred = nn.predict_one_hot(test_data)
+    # Prediction matrix
+    print((pred.T @ test_levels).astype(int))
+    # print((pred.T @ test_levels_all).astype(int))
+

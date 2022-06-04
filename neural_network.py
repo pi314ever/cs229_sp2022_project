@@ -12,7 +12,7 @@ import logging # For debugging purposes
 # import sys
 if __name__ == '__main__':
     FORMAT = "[%(levelname)s:%(filename)s:%(lineno)3s] %(funcName)s(): %(message)s"
-    logging.basicConfig(filename='./neural_network_files/nn.log', filemode='a',format=FORMAT, level=logging.DEBUG) # stream=sys.stderr
+    logging.basicConfig(filename='./neural_network_files/nn.log', filemode='a',format=FORMAT, level=logging.INFO) # stream=sys.stderr
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -26,10 +26,11 @@ logger.setLevel(logging.DEBUG)
 if __name__ == '__main__':
     # Hyperparameters
     epochs = 500
-    lr = 0.05
-    reg = 0.05
-    n_hidden = 200
-    batch_size = 100000
+    lr = 0.0015
+    reg = 0.01
+    n_hidden = 100
+    layers = 5
+    batch_size = 100
     var_lr = False
     # Filenames for saving parameters
     header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
@@ -41,33 +42,40 @@ if __name__ == '__main__':
     save = False
     load = False
 
-class two_layer_neural_network(util.classification_model):
+class n_layer_neural_network(util.classification_model):
     """
-    Two layered fully connected neural network with Batch Gradient Descent optimizer
+    N layered fully connected neural network with Batch Gradient Descent optimizer
 
     Architecture:
-        Features (Input) -> Sigmoid (Hidden)-> Softmax (Output)
+        Features (Input) -> Activation (N Hidden)-> Softmax (Output)
 
     All data must be shaped as (num_examples, num_features)
     All labels must be shaped as (num_examples, num_classes)
     """
-    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False, **kwargs):
+    def __init__(self, num_features:int, num_hidden:int, num_hidden_layers:int, num_classes:int, activation_func, d_activation_func, reg=0, filenames = None, verbose = False, **kwargs):
         """
         Initializes neural network
 
         Args:
             num_features (int): Number of features to consider
-            num_hidden (int): Number of hidden layers
+            num_hidden (int): Number of hidden nodes per layer
+            num_hidden_layers (int): Number of hidden layers
             num_classes (int): Number of classes to identify between
+            activation_func (list of lambda):
             regularized (float, optional): Regularization constant for the weights. Defaults to 0.
             filenames (list of str, optional): File location where the dataset of weights can be loaded. Order: [W1, W2, b1, b2]. Defaults to None (no pre-loaded parameters).
             verbose (bool, optional): Toggles verbose printouts.
         """
         if verbose:
-            logger.info('Initializing two layer neural network')
+            logger.info(f'Initializing {num_hidden_layers + 1} layer neural network')
+        assert num_hidden_layers == len(activation_func), 'Improper length of activation functions'
+        assert num_hidden_layers == len(d_activation_func), 'Improper length of derivative activation functions'
         self.num_classes = num_classes
         self.num_features = num_features
         self.num_hidden = num_hidden
+        self.num_hidden_layers = num_hidden_layers
+        self.act = activation_func
+        self.dact = d_activation_func
         self.reg = reg
         self.verbose = verbose
         self.err = nn_error()
@@ -77,11 +85,15 @@ class two_layer_neural_network(util.classification_model):
         if self.verbose:
             logger.info('Default initializing weights and biases')
         # Initialize weights
-        # np.random.seed(100) # For reproducibility
         sigma = 1
         rng = np.random.default_rng(100)
-        self.W = [rng.normal(0,sigma, (self.num_hidden, self.num_features)), rng.normal(0,sigma,(self.num_classes, self.num_hidden))]
-        self.b = [np.zeros((self.num_hidden, 1)), np.zeros((self.num_classes, 1))]
+        self.W = [rng.normal(0,sigma, (self.num_hidden, self.num_features))]
+        self.b = [np.zeros((self.num_hidden, 1))]
+        for _ in range(self.num_hidden_layers - 1):
+            self.W.append(rng.normal(0, sigma, (self.num_hidden, self.num_hidden)))
+            self.b.append(np.zeros((self.num_hidden, 1)))
+        self.W.append(rng.normal(0,sigma,(self.num_classes, self.num_hidden)))
+        self.b.append(np.zeros((self.num_classes, 1)))
     def load_params(self, header:str, **kwargs):
         """
         Load parameters with np.loadtxt()
@@ -93,16 +105,13 @@ class two_layer_neural_network(util.classification_model):
         Raises:
             e: Assertion errors for mismatched shape
         """
-        filenames = [header + 'W1.txt.gz', header + 'W2.txt.gz',header + 'b1.txt.gz',header + 'b2.txt.gz']
+        W_filenames = [f'{header}W{i}.txt.gz' for i in range(self.num_hidden_layers)]
+        b_filenames = [f'{header}b{i}.txt.gz' for i in range(self.num_hidden_layers + 1)]
         if self.verbose:
             logger.info(f'Loading dataset from {header}')
         try:
-            self.W = [np.array([]), np.array([])]
-            self.b = [np.array([]), np.array([])]
-            self.W[0] = np.loadtxt(filenames[0], ndmin=2, **kwargs)
-            self.W[1] = np.loadtxt(filenames[1], ndmin=2, **kwargs)
-            self.b[0] = np.loadtxt(filenames[2], ndmin=2, **kwargs)
-            self.b[1] = np.loadtxt(filenames[3], ndmin=2, **kwargs)
+            self.W = [np.loadtxt(W_filenames[i], ndmin=2, **kwargs) for i in range(self.num_hidden_layers + 1)]
+            self.b = [np.loadtxt(b_filenames[i], ndmin=2, **kwargs) for i in range(self.num_hidden_layers + 1)]
         except:
             logger.warning('Failed to load dataset, performing default initialization.')
             self.init_params()
@@ -110,9 +119,12 @@ class two_layer_neural_network(util.classification_model):
         # Confirm parameters are of the right shape
         try:
             assert(self.W[0].shape == (self.num_hidden, self.num_features))
-            assert(self.W[1].shape == (self.num_classes, self.num_hidden))
+            assert(self.W[-1].shape == (self.num_classes, self.num_hidden))
             assert(self.b[0].shape == (self.num_hidden, 1))
-            assert(self.b[1].shape == (self.num_classes, 1))
+            assert(self.b[-1].shape == (self.num_classes, 1))
+            for i in range(1, self.num_hidden_layers):
+                assert(self.W[i].shape == (self.num_hidden, self.num_hidden))
+                assert(self.b[i].shape == (self.num_hidden, 1))
         except Exception as e:
             logger.error('Failed to load files, mismatched shape')
             raise e
@@ -124,14 +136,14 @@ class two_layer_neural_network(util.classification_model):
             header (str): Header to the file location where the dataset of weights can be saved. ex: header='test_' -> 'test_W1.txt.gz' for the file that contains W1.
             **kwargs: Keyword arguments to be passed to np.savetxt()
         """
-        filenames = [header + 'W1.txt.gz', header + 'W2.txt.gz',header + 'b1.txt.gz',header + 'b2.txt.gz']
+        W_filenames = [f'{header}W{i}.txt.gz' for i in range(self.num_hidden_layers)]
+        b_filenames = [f'{header}b{i}.txt.gz' for i in range(self.num_hidden_layers)]
         if self.verbose:
             logger.info(f'Saving parameters to {header}')
-        np.savetxt(filenames[0], self.W[0], **kwargs)
-        np.savetxt(filenames[1], self.W[1], **kwargs)
-        np.savetxt(filenames[2], self.b[0], **kwargs)
-        np.savetxt(filenames[3], self.b[1], **kwargs)
-    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None, var_lr = False):
+        for i in range(self.num_hidden_layers + 1):
+            np.savetxt(W_filenames[i], self.W[i], **kwargs)
+            np.savetxt(b_filenames[i], self.b[i], **kwargs)
+    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None, var_lr = False, print_epochs = False):
         """
         Fits neural network based on training data and training labels using batch gradient descent (Can convert to GD if batch size = number of examples)
 
@@ -176,8 +188,8 @@ class two_layer_neural_network(util.classification_model):
                 perm = np.random.shuffle(np.arange(train_data.shape[0]))
                 train_data = train_data[perm, :].squeeze()
                 train_labels = train_labels[perm, :].squeeze()
-                # if self.verbose:
-                    # logger.info(f'Epoch {epoch + 1} of {num_epochs}')
+                if print_epochs:
+                    logger.info(f'Epoch {epoch + 1} of {num_epochs}')
                 if var_lr:
                     learning_rate /= np.log(np.log(0.1 * epoch + 1) + 1) + 1
                 # Perform gradient descent
@@ -201,7 +213,6 @@ class two_layer_neural_network(util.classification_model):
                         # Loss stabilized
                         self.err.set_code(2, train_cost = cost_train[-1], train_acc = accuracy_train[-1][-1],dev_cost = cost_dev[-1], dev_acc = accuracy_dev[-1][-1])
                         break
-
         except KeyboardInterrupt:
             logger.info('Keyboard interrupted, stopping training process.')
             self.err.set_code(100, iter = epoch + 1)
@@ -259,15 +270,21 @@ class two_layer_neural_network(util.classification_model):
         Returns:
             hidden (2d array): Hidden layer activations for each case
             output (2d array): Output of the neural network (after softmax)
-            loss (float): Average loss for the predicted output (if labels are given, else returns 0)
+            loss (float): Average loss for the predicted output (if labels are given, else returns -1)
         """
         self.is_valid(data=data)
-        hidden = util.sigmoid((self.W[0] @ data.T + self.b[0]).T)
-        output = util.softmax((self.W[1] @ hidden.T + self.b[1]).T)
+        hidden = []
+        for i, func in enumerate(self.act):
+            if i == 0:
+                # First step, use data
+                hidden.append(func((self.W[0] @ data.T + self.b[0]).T))
+            else:
+                hidden.append(func((self.W[i] @ hidden[i-1].T + self.b[i]).T))
+        output = util.softmax((self.W[-1] @ hidden[-1].T + self.b[-1]).T)
         if labels is not None:
             loss = self.loss(labels, output)
         else:
-            loss = 0
+            loss = -1
         return hidden, output, loss
     def loss(self, labels, output):
         """
@@ -292,12 +309,14 @@ class two_layer_neural_network(util.classification_model):
         # Forward prop values
         hidden, output, _ = self.forward_prop(data, labels)
         n = data.shape[0]
-        dCEdz2 = labels - output
-        dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
-        self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + 2 * self.reg * self.W[0])
-        self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + 2 * self.reg * self.W[1])
-        self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
-        self.b[1] -= -(learning_rate * (np.average(dCEdz2, axis=0))).reshape(self.b[1].shape)
+        dCEdzi = labels - output
+        for i in np.arange(self.num_hidden_layers, -1, -1):
+            self.b[i] -= learning_rate * (np.average(dCEdzi, axis=0)).reshape(self.b[i].shape)
+            if i == 0:
+                self.W[i] -= learning_rate * (-dCEdzi.T @ data / n + 2 * self.reg * self.W[i])
+            else:
+                self.W[i] -= learning_rate * (-dCEdzi.T @ hidden[i - 1] / n + 2 * self.reg * self.W[i])
+                dCEdzi = (dCEdzi @ self.W[i]) * self.dact[i - 1](hidden[i - 1])
     def predict(self, data):
         return self.forward_prop(data)[1]
     def predict_one_hot(self, data):
@@ -310,7 +329,31 @@ class two_layer_neural_network(util.classification_model):
             pred[i, np.argmax(output[i,:])] = 1
         return pred
 
+# To preserve previous API
+class two_layer_neural_network(n_layer_neural_network):
+    """
+    Two layered fully connected neural network with Batch Gradient Descent optimizer
 
+    Architecture:
+        Features (Input) -> Sigmoid (Hidden)-> Softmax (Output)
+
+    All data must be shaped as (num_examples, num_features)
+    All labels must be shaped as (num_examples, num_classes)
+    """
+    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False, **kwargs):
+        """
+        Initializes neural network
+
+        Args:
+            num_features (int): Number of features to consider
+            num_hidden (int): Number of hidden layers
+            num_classes (int): Number of classes to identify between
+            regularized (float, optional): Regularization constant for the weights. Defaults to 0.
+            filenames (list of str, optional): File location where the dataset of weights can be loaded. Order: [W1, W2, b1, b2]. Defaults to None (no pre-loaded parameters).
+            verbose (bool, optional): Toggles verbose printouts.
+        """
+        # Load parameters
+        super().__init__(num_features, num_hidden, 1, num_classes, [util.sigmoid], [util.dsigmoid], reg, filenames, verbose, **kwargs)
 class nn_error:
     def __init__(self) -> None:
         self.code = 0
@@ -331,7 +374,8 @@ class nn_error:
 # Testing function
 def main():
     # Gather data
-    matrix, levels, level_map = util.load_dataset(pooled=True, by_books=False,vectorizer=True)
+    matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
+    levels = np.loadtxt('./neural_network_files/levels.txt.gz')
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.6
@@ -341,10 +385,19 @@ def main():
         print(f'Number of class {i}: {num_class[i]}')
 
     # Train nn
-    nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
+    # nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
+    nn = n_layer_neural_network(n_features, n_hidden, layers, n_levels, [util.sigmoid] * layers, [util.dsigmoid] * layers, reg, verbose=True)
     if load:
         nn.load_params(header)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr, print_epochs=True)
+    print(nn.err)
+    print(f'Final training accuracy: {accuracy_train[-1,-1]}, dev accuracy: {accuracy_dev[-1,-1]}')
+    pred = nn.predict_one_hot(matrix)
+    # Prediction matrix
+    levels_all = util.load_dataset(pooled=False)[1]
+    print((pred.T @ levels_all).astype(int))
+    print((pred.T @ levels).astype(int))
+    print(np.linalg.det(pred.T @ levels))
     if save:
         nn.save(header)
     if plot:
