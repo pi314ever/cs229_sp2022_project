@@ -63,6 +63,15 @@ def sigmoid(x):
     """
     return np.reciprocal(1 + np.exp(-x))
 
+def dsigmoid(x):
+    return x * (1 - x)
+
+def relu(x):
+    return np.maximum(0, x)
+
+def drelu(x):
+    return (x > 0).astype(int)
+
 def load_csv(filename):
     return pd.read_csv(filename)
 
