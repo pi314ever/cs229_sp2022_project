@@ -141,6 +141,36 @@ def barplt_pooled(kmeans_matrix, k, algtype):
     print(pltname)
     plt.savefig(pltname, format= 'png') 
 
+def kmeans_acc(matrix,cutoff1=3, cutoff2=9):
+    #input 3 by 14 matrix, where row is cluster and column is 14 levels
+    cols= matrix.shape[1]
+    rows= matrix.shape[0]
+    level_mark= [cutoff1,cutoff2]
+    correct= np.zeros(rows+1)
+    acc= np.zeros(rows+1)
+    for i in range(cols):
+        print("i",i, correct)
+        if (i<=level_mark[0]):
+            print(matrix[0,i])
+            correct[0]+=matrix[0,i]
+        if (i>level_mark[0] & i<=level_mark[1]):
+            correct[1]+=matrix[1,i]
+            print(matrix[1,i])
+        if (i>level_mark[1]):
+            correct[2]+=matrix[2,i]
+            print(matrix[2,i])
+    correct[3]= correct[0]+correct[1]+correct[2]
+    print("final correct", correct)
+    total= np.sum(matrix, axis=1)
+    print("total", total)
+    allwords= np.sum(matrix)
+    total= np.append(total, allwords)
+    print("total", total)
+    acc=correct/total
+    print(acc)
+
+            
+
 
 
 
@@ -148,7 +178,8 @@ def main():
     np.set_printoptions(suppress=True)
 
     ### Unpooled dataset
-    for k in range(2,5):
+    for k in range(3,4):
+        print(k)
         matrix, levels, _ = util.load_dataset()
         print("grade_level",levels.shape)
         ## K modified terms matrix
@@ -172,6 +203,8 @@ def main():
 
         print("simple term frequency matrix")
         print(kmeans_tf)
+        if k==3:
+            kmeans_acc(kmeans_tf,cutoff1=3, cutoff2=9)
 
 
         #### Vectorized 
@@ -181,12 +214,18 @@ def main():
         #     ## K means no change in matrix
         labels_vec= kmean_cluster(matrix,k)
         kmeans_vec= (index2matrix(labels_vec).T @ levels).round(decimals=2)
+        if k==3:
+            kmeans_acc(kmeans_vec,cutoff1=3, cutoff2=9)
+        print(kmeans_vec)
         plt.figure()
         s2=sns.heatmap(kmeans_vec, annot=True, fmt=".0f",xticklabels=x_axis_labels, yticklabels=y_axis_labels)
         s2.set(xlabel='Original labels', ylabel='K-means clusters')
         pltname = f"./kmeans_{k}clusters_BERT_heatmap.png"
         print(pltname)
         plt.savefig(pltname, format= 'png')
+
+
+
 
 
 
