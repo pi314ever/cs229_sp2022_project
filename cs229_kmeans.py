@@ -159,7 +159,7 @@ def main():
 
         ## Columns are original levels, rows are K means clusters
         x_axis_labels = ["A","B","C","D","E","F", "G","H", "I","J","K","L","M","N"] # labels for x-axis
-        y_axis_labels = [0,1,2] # labels for y-axis
+        y_axis_labels = np.arange(k) # labels for y-axis
 
         kmeans_tf= (index2matrix(labels_tf).T @ levels).round(decimals=2)
         plt.figure()
