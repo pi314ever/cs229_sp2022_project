@@ -30,13 +30,14 @@ if __name__ == '__main__':
     reg = 0.05
     n_hidden = 200
     batch_size = 100000
+    activation = 'relu'
     var_lr = False
     # Filenames for saving parameters
-    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
+    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_A{activation}'
     # folder = './neural_network_parameters/'
     # filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
     figure_filename = './test.pdf'
-
+    
     plot = True
     save = False
     load = False
@@ -51,7 +52,7 @@ class two_layer_neural_network(util.classification_model):
     All data must be shaped as (num_examples, num_features)
     All labels must be shaped as (num_examples, num_classes)
     """
-    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False, **kwargs):
+    def __init__(self, num_features:int, num_hidden:int, num_classes:int, reg=0, filenames = None, verbose = False, activation = 'sigmoid', **kwargs):
         """
         Initializes neural network
 
@@ -70,6 +71,7 @@ class two_layer_neural_network(util.classification_model):
         self.num_hidden = num_hidden
         self.reg = reg
         self.verbose = verbose
+        self.activation = activation
         self.err = nn_error()
         # Load parameters
         super().__init__(filenames, **kwargs)
@@ -263,12 +265,14 @@ class two_layer_neural_network(util.classification_model):
         """
         self.is_valid(data=data)
         hidden = util.sigmoid((self.W[0] @ data.T + self.b[0]).T)
+        if self.activation == 'relu':
+            hidden = util.relu((self.W[0] @ data.T + self.b[0]).T)
         output = util.softmax((self.W[1] @ hidden.T + self.b[1]).T)
         if labels is not None:
             loss = self.loss(labels, output)
         else:
             loss = 0
-        return hidden, output, loss
+        return data, hidden, output, loss
     def loss(self, labels, output):
         """
         Calculates loss given labels and model output
@@ -290,10 +294,15 @@ class two_layer_neural_network(util.classification_model):
             labels (2d array)
         """
         # Forward prop values
-        hidden, output, _ = self.forward_prop(data, labels)
+        data, hidden, output, _ = self.forward_prop(data, labels)
         n = data.shape[0]
         dCEdz2 = labels - output
         dCEdz1 = (dCEdz2 @ self.W[1]) * hidden * (1 - hidden)
+        if self.activation == 'relu':
+            binary = np.copy(data)
+            binary[binary > 0] = 1
+            binary[binary < 0] = 0
+            dCEdz1 = dCEdz2 * binary
         self.W[0] -= learning_rate * (-dCEdz1.T @ data / n + 2 * self.reg * self.W[0])
         self.W[1] -= learning_rate * (-dCEdz2.T @ hidden / n + 2 * self.reg * self.W[1])
         self.b[0] -= -(learning_rate * (np.average(dCEdz1, axis=0))).reshape(self.b[0].shape)
@@ -341,7 +350,7 @@ def main():
         print(f'Number of class {i}: {num_class[i]}')
 
     # Train nn
-    nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
+    nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, activation = activation, verbose=True)
     if load:
         nn.load_params(header)
     cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr)

@@ -63,6 +63,20 @@ def sigmoid(x):
     """
     return np.reciprocal(1 + np.exp(-x))
 
+def relu(x):
+    """
+    Compute the sigmoid function for the input here.
+
+    Args:
+        x: A numpy float array
+
+    Returns:
+        A numpy float array containing the sigmoid results
+    """
+    x[x < 0] = 0
+    return x
+
+
 def load_csv(filename):
     return pd.read_csv(filename)
 
