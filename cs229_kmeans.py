@@ -149,16 +149,12 @@ def kmeans_acc(matrix,cutoff1=3, cutoff2=9):
     correct= np.zeros(rows+1)
     acc= np.zeros(rows+1)
     for i in range(cols):
-        print("i",i, correct)
         if (i<=level_mark[0]):
-            print(matrix[0,i])
             correct[0]+=matrix[0,i]
         if (i>level_mark[0] & i<=level_mark[1]):
             correct[1]+=matrix[1,i]
-            print(matrix[1,i])
         if (i>level_mark[1]):
             correct[2]+=matrix[2,i]
-            print(matrix[2,i])
     correct[3]= correct[0]+correct[1]+correct[2]
     print("final correct", correct)
     total= np.sum(matrix, axis=1)
@@ -167,7 +163,7 @@ def kmeans_acc(matrix,cutoff1=3, cutoff2=9):
     total= np.append(total, allwords)
     print("total", total)
     acc=correct/total
-    print(acc)
+    print("accuracy", acc)
 
             
 
