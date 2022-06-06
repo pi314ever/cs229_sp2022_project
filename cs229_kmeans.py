@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+import seaborn as sns; sns.set_theme()
 
 #*** cs229_kmeans.py
 # Summary: Contains and tests k-means on various representations of the dataset
@@ -68,6 +69,10 @@ def index2matrix(vec):
     for i, idx in enumerate(vec):
         out[i, idx] = 1
     return out
+
+def heatmap_unpooled(kmeans_matrix, k, algtype):
+    sns.heatmap(kmeans_matrix, annot=True, fmt="d")
+
 
 
 
@@ -137,21 +142,15 @@ def barplt_pooled(kmeans_matrix, k, algtype):
     plt.savefig(pltname, format= 'png') 
 
 
+
+
 def main():
     np.set_printoptions(suppress=True)
-    
-    
-    #k = 3
 
+    ### Unpooled dataset
     for k in range(2,5):
-        
-        print(k)
-        matrix, levels, _ = util.load_dataset_pooled()
-        print("matrix shape", matrix.shape)
+        matrix, levels, _ = util.load_dataset()
         print("grade_level",levels.shape)
-        ## K means no change in matrix
-        labels_tf= kmean_cluster(matrix,k)
-
         ## K modified terms matrix
         matrix_tf, matrix_tfidf= tfidf(matrix)
         # print("tfidf", matrix_tfidf.shape)
@@ -159,34 +158,87 @@ def main():
         # print(np.unique(labels_tfidf))
 
         ## Columns are original levels, rows are K means clusters
+        x_axis_labels = ["A","B","C","D","E","F", "G","H", "I","J","K","L","M","N"] # labels for x-axis
+        y_axis_labels = [0,1,2] # labels for y-axis
+
         kmeans_tf= (index2matrix(labels_tf).T @ levels).round(decimals=2)
+        plt.figure()
+        s=sns.heatmap(kmeans_tf, annot=True, fmt=".0f",xticklabels=x_axis_labels, yticklabels=y_axis_labels)
+        s.set(xlabel='Original labels', ylabel='K-means clusters')
+        pltname = f"./kmeans_{k}clusters_TF_heatmap.png"
+        print(pltname)
+        plt.savefig(pltname, format= 'png')
+        plt.clf()
 
         print("simple term frequency matrix")
         print(kmeans_tf)
-        barplt_pooled(kmeans_tf, k, "TF")
-        # uv, xt = xtab(labels_tf, levels)
-        # print(uv)
-        # print(xt)
 
-        print("term frequency idf matrix")
-        labels_tfidf= kmean_cluster(matrix_tfidf,k)
-        print("labels_tfidf",index2matrix(labels_tfidf).shape)
-        kmeans_tfidf= (index2matrix(labels_tfidf).T @ levels).round(decimals=2)
-        print(kmeans_tfidf)
-        barplt_pooled(kmeans_tfidf, k, "TF-IDF")
-        # uvidf, xtidf = xtab(labels_tfidf, levels)
-        # print(uvidf)
-        # print(xtidf)
 
-        # Using vectorizer
+        #### Vectorized 
+
         matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
 
-        ## K means no change in matrix
+        #     ## K means no change in matrix
         labels_vec= kmean_cluster(matrix,k)
         kmeans_vec= (index2matrix(labels_vec).T @ levels).round(decimals=2)
-        print("Vectorized inputs")
-        print(kmeans_vec)
-        barplt_pooled(kmeans_vec, k, "BERT vector")
+        plt.figure()
+        s2=sns.heatmap(kmeans_vec, annot=True, fmt=".0f",xticklabels=x_axis_labels, yticklabels=y_axis_labels)
+        s2.set(xlabel='Original labels', ylabel='K-means clusters')
+        pltname = f"./kmeans_{k}clusters_BERT_heatmap.png"
+        print(pltname)
+        plt.savefig(pltname, format= 'png')
+
+
+
+
+    # ### Pooled dataset
+    # for k in range(2,5):
+    #     print(k)
+    #     matrix, levels, _ = util.load_dataset_pooled()
+    #     print("matrix shape", matrix.shape)
+    #     print("grade_level",levels.shape)
+    #     ## K means no change in matrix
+    #     labels_tf= kmean_cluster(matrix,k)
+
+    #     ## K modified terms matrix
+    #     matrix_tf, matrix_tfidf= tfidf(matrix)
+    #     # print("tfidf", matrix_tfidf.shape)
+    #     labels_tf= kmean_cluster(matrix_tf,k)
+    #     # print(np.unique(labels_tfidf))
+
+    #     ## Columns are original levels, rows are K means clusters
+    #     kmeans_tf= (index2matrix(labels_tf).T @ levels).round(decimals=2)
+
+    #     print("simple term frequency matrix")
+    #     print(kmeans_tf)
+    #     barplt_pooled(kmeans_tf, k, "TF")
+    #     # uv, xt = xtab(labels_tf, levels)
+    #     # print(uv)
+    #     # print(xt)
+
+    #     print("term frequency idf matrix")
+    #     labels_tfidf= kmean_cluster(matrix_tfidf,k)
+    #     print("labels_tfidf",index2matrix(labels_tfidf).shape)
+    #     kmeans_tfidf= (index2matrix(labels_tfidf).T @ levels).round(decimals=2)
+    #     print(kmeans_tfidf)
+    #     barplt_pooled(kmeans_tfidf, k, "TF-IDF")
+    #     # uvidf, xtidf = xtab(labels_tfidf, levels)
+    #     # print(uvidf)
+    #     # print(xtidf)
+
+    #     # Using vectorizer
+    #     matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
+
+    #     ## K means no change in matrix
+    #     labels_vec= kmean_cluster(matrix,k)
+    #     kmeans_vec= (index2matrix(labels_vec).T @ levels).round(decimals=2)
+    #     print("Vectorized inputs")
+    #     print(kmeans_vec)
+    #     barplt_pooled(kmeans_vec, k, "BERT vector")
+
+
+
+
 
 
 
