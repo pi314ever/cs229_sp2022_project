@@ -25,12 +25,18 @@ logger.setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
     # Hyperparameters
+    # epochs = 500
+    # lr = 0.0015
+    # reg = 0.01
+    # n_hidden = 100
+    # layers = 5
+    # batch_size = 100
     epochs = 500
-    lr = 0.0015
-    reg = 0.01
-    n_hidden = 100
-    layers = 5
-    batch_size = 100
+    lr = 0.1
+    reg = 0.00
+    n_hidden = 200
+    layers = 2
+    batch_size = 5
     var_lr = False
     # Filenames for saving parameters
     header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
@@ -85,7 +91,7 @@ class n_layer_neural_network(util.classification_model):
         if self.verbose:
             logger.info('Default initializing weights and biases')
         # Initialize weights
-        sigma = 1
+        sigma = .1
         rng = np.random.default_rng(100)
         self.W = [rng.normal(0,sigma, (self.num_hidden, self.num_features))]
         self.b = [np.zeros((self.num_hidden, 1))]
