@@ -77,7 +77,6 @@ def heatmap_unpooled(kmeans_matrix, k, algtype):
 
 
 def barplt_pooled(kmeans_matrix, k, algtype):
-    
     labels = np.arange(k)
     x = np.arange(len(labels))  # the label locations
     barWidth = 0.25  # the width of the bars
@@ -129,7 +128,7 @@ def barplt_pooled(kmeans_matrix, k, algtype):
       ax.text(text_x, text_y, text, ha='center', va='bottom', color=bar_color,
               size=12)
 
-    
+
 
     fig.tight_layout()
     # key = f'H{hidden}B{batch_size}L{lr}R{reg}'
@@ -137,9 +136,9 @@ def barplt_pooled(kmeans_matrix, k, algtype):
     #                 plot_file = f'./neural_network_files/plots/{type}_{key}.png'
     #                 sub_key = re.sub(r"\.",r"_",key)
     #                 save_path = f'./neural_network_files/{type}_{sub_key}/'
-    pltname = f"./kmeans_{k}clusters_{algtype}.png"
+    pltname = f"./kmeans_files/kmeans_{k}clusters_{algtype}.png"
     print(pltname)
-    plt.savefig(pltname, format= 'png') 
+    plt.savefig(pltname, format= 'png')
 
 def kmeans_acc(matrix,cutoff1=3, cutoff2=9):
     #input 3 by 14 matrix, where row is cluster and column is 14 levels
@@ -165,7 +164,7 @@ def kmeans_acc(matrix,cutoff1=3, cutoff2=9):
     acc=correct/total
     print("accuracy", acc)
 
-            
+
 
 
 
@@ -192,7 +191,7 @@ def main():
         plt.figure()
         s=sns.heatmap(kmeans_tf, annot=True, fmt=".0f",xticklabels=x_axis_labels, yticklabels=y_axis_labels)
         s.set(xlabel='Original labels', ylabel='K-means clusters')
-        pltname = f"./kmeans_{k}clusters_TF_heatmap.png"
+        pltname = f"./kmeans_files/kmeans_{k}clusters_TF_heatmap.png"
         print(pltname)
         plt.savefig(pltname, format= 'png')
         plt.clf()
@@ -203,7 +202,7 @@ def main():
             kmeans_acc(kmeans_tf,cutoff1=3, cutoff2=9)
 
 
-        #### Vectorized 
+        #### Vectorized
 
         matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
 
@@ -216,7 +215,7 @@ def main():
         plt.figure()
         s2=sns.heatmap(kmeans_vec, annot=True, fmt=".0f",xticklabels=x_axis_labels, yticklabels=y_axis_labels)
         s2.set(xlabel='Original labels', ylabel='K-means clusters')
-        pltname = f"./kmeans_{k}clusters_BERT_heatmap.png"
+        pltname = f"./kmeans_files/kmeans_{k}clusters_BERT_heatmap.png"
         print(pltname)
         plt.savefig(pltname, format= 'png')
 

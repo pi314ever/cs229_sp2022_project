@@ -37,7 +37,7 @@ def main():
     print(matrix.shape)
     levelcount=pgperlevel(levels)
     print(levelcount)
-    np.savetxt('pagesperlevel.txt', levelcount,fmt='%i')
+    # np.savetxt('pagesperlevel.txt', levelcount,fmt='%i')
     wrdpage= wordsperlevel(matrix, levels)
 
 
@@ -49,8 +49,8 @@ def main():
     print(levelcount_p)
     wrdpage_p= wordsperlevel(matrix_pooled, levels_pooled)
     print("pooled words per page", wrdpage_p)
-    np.savetxt('wordsperlevelpooled.txt', wrdpage_p,fmt='%i')
-    
+    # np.savetxt('wordsperlevelpooled.txt', wrdpage_p,fmt='%i')
+
 
 
 # Testing function
