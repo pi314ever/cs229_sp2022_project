@@ -125,6 +125,7 @@ def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer=False):
         pass
     valid_data = raw_data.loc[raw_data['page_word_count'] > min_words]
     text_data = np.array(valid_data['page_text'])
+    valid_data.to_csv('../cs229_sp22_dataset/valid_data.csv')
     level = np.array(valid_data['level'])
     n = len(level)
     if pooled:
@@ -155,7 +156,7 @@ def load_dataset(min_words = 3, pooled=False, by_books=False, vectorizer=False):
 def load_dataset_pooled(**kwargs):
     return load_dataset(pooled=True, **kwargs)
 
-def train_test_split(matrix, levels, c: float = 0.6):
+def train_test_split(matrix, levels, c: float = 0.6, subsample = False):
     """
     Splits data into three datasets: train, test, and dev.
 
@@ -163,6 +164,7 @@ def train_test_split(matrix, levels, c: float = 0.6):
         matrix (2d np array): Matrix of input data
         levels (2d np array): Matrix of one hot vectors (output)
         c (float): Between 0 and 1, the percentage of data designated for training data. Dev and test data are split evenly
+        subsample (bool): Whether or not to limit sampling to the dataset of smallest size
 
     Returns:
         train/dev/test_data/label: Split train, dev, and test data and labels as np arrays.
@@ -175,11 +177,15 @@ def train_test_split(matrix, levels, c: float = 0.6):
     train_label = []
     dev_label = []
     test_label = []
+    min_size = min(np.sum(levels, axis=0))
     for i in range(m):
         # Sample separately by test, train, and dev set
         mati = matrix[levels[:,i] == 1,:].squeeze()
         levi = levels[levels[:,i] == 1,:].squeeze()
-        ni = sum(levels[:,i])
+        if subsample:
+            ni = min_size
+        else:
+            ni = sum(levels[:,i])
         rng = np.random.default_rng(200)
         perm = rng.shuffle(np.arange(ni))
         mati = mati[perm, :].squeeze()
