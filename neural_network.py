@@ -37,7 +37,7 @@ if __name__ == '__main__':
     batch_size = 100
     var_lr = False
     # Filenames for saving parameters
-    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_'
+    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_A{activation}'
     # folder = './neural_network_parameters/'
     # filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
     figure_filename = './test.pdf'
@@ -88,6 +88,7 @@ class n_layer_neural_network(util.classification_model):
         self.dact = d_activation_func
         self.reg = reg
         self.verbose = verbose
+        self.activation = activation
         self.err = nn_error()
         # Load parameters
         super().__init__(filenames, **kwargs)
@@ -321,7 +322,7 @@ class n_layer_neural_network(util.classification_model):
             labels (2d array)
         """
         # Forward prop values
-        hidden, output, _ = self.forward_prop(data, labels)
+        data, hidden, output, _ = self.forward_prop(data, labels)
         n = data.shape[0]
         dCEdzi = labels - output
         for i in np.arange(self.num_hidden_layers, -1, -1):
