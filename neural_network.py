@@ -37,7 +37,7 @@ if __name__ == '__main__':
     batch_size = 100
     var_lr = False
     # Filenames for saving parameters
-    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}_A{activation}'
+    header = f'./neural_network_files/test_E{epochs}_LR{lr:.2e}_R{reg:.2e}_H{n_hidden}'
     # folder = './neural_network_parameters/'
     # filenames = [folder + 'W1.txt.gz', folder + 'W2.txt.gz',folder + 'b1.txt.gz',folder + 'b2.txt.gz']
     figure_filename = './test.pdf'
@@ -62,7 +62,7 @@ class n_layer_neural_network(util.classification_model):
         nn.fit(...)
         nn.predict(...)
     """
-    def __init__(self, num_features:int, num_hidden:int, num_hidden_layers:int, num_classes:int, activation_func, d_activation_func, reg=0, filenames = None, verbose = False, **kwargs):
+    def __init__(self, num_features:int, num_hidden:int, num_hidden_layers:int, num_classes:int, activation_func, d_activation_func, filenames = None, verbose = False, **kwargs):
         """
         Initializes neural network
 
@@ -72,7 +72,6 @@ class n_layer_neural_network(util.classification_model):
             num_hidden_layers (int): Number of hidden layers
             num_classes (int): Number of classes to identify between
             activation_func (list of lambda):
-            regularized (float, optional): Regularization constant for the weights. Defaults to 0.
             filenames (list of str, optional): File location where the dataset of weights can be loaded. Order: [W1, W2, b1, b2]. Defaults to None (no pre-loaded parameters).
             verbose (bool, optional): Toggles verbose printouts.
         """
@@ -86,9 +85,7 @@ class n_layer_neural_network(util.classification_model):
         self.num_hidden_layers = num_hidden_layers
         self.act = activation_func
         self.dact = d_activation_func
-        self.reg = reg
         self.verbose = verbose
-        self.activation = activation
         self.err = nn_error()
         # Load parameters
         super().__init__(filenames, **kwargs)
@@ -158,7 +155,7 @@ class n_layer_neural_network(util.classification_model):
         for i in range(self.num_hidden_layers + 1):
             np.savetxt(W_filenames[i], self.W[i], **kwargs)
             np.savetxt(b_filenames[i], self.b[i], **kwargs)
-    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., dev_data = None, dev_labels = None, var_lr = False, print_epochs = False):
+    def fit(self, train_data, train_labels, batch_size, num_epochs = 30, learning_rate = 5., reg = 0, dev_data = None, dev_labels = None, var_lr = False, print_epochs = False):
         """
         Fits neural network based on training data and training labels using batch gradient descent (Can convert to GD if batch size = number of examples)
 
@@ -174,6 +171,7 @@ class n_layer_neural_network(util.classification_model):
             batch_size (int)
             num_epochs (int, optional): Number of epochs for training. Defaults to 30.
             learning_rate (float, optional): Batch GD learning rate. Defaults to 5.
+            regularized (float, optional): Regularization constant for the weights. Defaults to 0.
             dev_data (nd x d array, optional): Development data, for use in comparing incremental increases. Defaults to None.
             dev_labels (nd x c array, optional): Developmental labels, for use in comparing incremental increases. Defaults to None.
             var_lr (bool): Whether or not the learning rate is decreasing
@@ -184,6 +182,7 @@ class n_layer_neural_network(util.classification_model):
             cost_dev (epochs x 1 np array): Cost history for dev data (if provided)
             accuracy_dev (epochs x (c+1) np array): Accuracy history of dev data (if provided)
         """
+        self.reg = reg
         logger.info(f'Fitting neural network with {self.num_features} features to {self.num_classes} classes with {self.reg} regularization {learning_rate} learning rate and {self.num_hidden}x{self.num_hidden_layers} hidden nodes')
         # Check for proper dimensions
         self.is_valid(train_data, train_labels)
@@ -322,7 +321,7 @@ class n_layer_neural_network(util.classification_model):
             labels (2d array)
         """
         # Forward prop values
-        data, hidden, output, _ = self.forward_prop(data, labels)
+        hidden, output, _ = self.forward_prop(data, labels)
         n = data.shape[0]
         dCEdzi = labels - output
         for i in np.arange(self.num_hidden_layers, -1, -1):
@@ -421,10 +420,10 @@ def main():
         print(f'Number of class {i}: train: {num_class_train[i]} \tdev: {num_class_dev[i]} \ttest: {num_class_test[i]} \ttotal: {num_class[i]}')
     # Train nn
     # nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
-    nn = n_layer_neural_network(n_features, n_hidden, layers, n_levels, [util.sigmoid] * layers, [util.dsigmoid] * layers, reg, verbose=True)
+    nn = n_layer_neural_network(n_features, n_hidden, layers, n_levels, [util.sigmoid] * layers, [util.dsigmoid] * layers, verbose=True)
     if load:
         nn.load_params(header)
-    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr, print_epochs=True)
+    cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, reg=reg, var_lr = var_lr, print_epochs=True)
     print(nn.err)
     print(f'Final training cost: {cost_train[-1]}, dev cost: {cost_dev[-1]}')
     print(f'Final training accuracy: {accuracy_train[-1,-1]}, dev accuracy: {accuracy_dev[-1,-1]}')
