@@ -11,6 +11,12 @@ If things are set up correctly, the dataset should not be included in `git statu
 
 **IMPORTANT: DO NOT UPLOAD ANY PART OF THE DATASET TO THIS REPO, AS THIS IS A PUBLIC REPO! DOUBLE CHECK EVERY TIME!**
 
+## Overview
+
+### Neural network model (`neural_network.py`)
+
+The neural network model is comprised ofd
+
 ## TODO list
 
 ### Data analysis

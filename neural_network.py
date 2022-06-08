@@ -25,11 +25,15 @@ logger.setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
     # Hyperparameters
-    epochs = 500
-    lr = 0.0015
-    reg = 0.01
-    n_hidden = 100
-    layers = 5
+    epochs = 1000
+    # Best so far, acc 0.6099 with 0.814 cost dev
+    # lr = 0.016
+    # reg = 0.015
+    # n_hidden = 50
+    lr = 0.6
+    reg = 0
+    n_hidden = 300
+    layers = 1
     batch_size = 100
     var_lr = False
     # Filenames for saving parameters
@@ -51,6 +55,12 @@ class n_layer_neural_network(util.classification_model):
 
     All data must be shaped as (num_examples, num_features)
     All labels must be shaped as (num_examples, num_classes)
+
+    Usage:
+    Example with 4 layers with sigmoid activation functions
+        nn = n_layer_neural_network(n, 100, 4, c, [util.sigmoid] * 4, [util.dsigmoid] * 4, reg=reg, verbose=True)
+        nn.fit(...)
+        nn.predict(...)
     """
     def __init__(self, num_features:int, num_hidden:int, num_hidden_layers:int, num_classes:int, activation_func, d_activation_func, reg=0, filenames = None, verbose = False, **kwargs):
         """
@@ -86,13 +96,17 @@ class n_layer_neural_network(util.classification_model):
             logger.info('Default initializing weights and biases')
         # Initialize weights
         sigma = 1
+        c = 0
         rng = np.random.default_rng(100)
-        self.W = [rng.normal(0,sigma, (self.num_hidden, self.num_features))]
+        self.W = [rng.normal(c,sigma, (self.num_hidden, self.num_features))]
+        # self.W = [np.ones((self.num_hidden, self.num_features))]
         self.b = [np.zeros((self.num_hidden, 1))]
         for _ in range(self.num_hidden_layers - 1):
-            self.W.append(rng.normal(0, sigma, (self.num_hidden, self.num_hidden)))
+            self.W.append(rng.normal(c, sigma, (self.num_hidden, self.num_hidden)))
+            # self.W.append(np.ones((self.num_hidden, self.num_hidden)))
             self.b.append(np.zeros((self.num_hidden, 1)))
-        self.W.append(rng.normal(0,sigma,(self.num_classes, self.num_hidden)))
+        self.W.append(rng.normal(c,sigma,(self.num_classes, self.num_hidden)))
+        # self.W.append(np.ones((self.num_classes, self.num_hidden)))
         self.b.append(np.zeros((self.num_classes, 1)))
     def load_params(self, header:str, **kwargs):
         """
@@ -169,7 +183,7 @@ class n_layer_neural_network(util.classification_model):
             cost_dev (epochs x 1 np array): Cost history for dev data (if provided)
             accuracy_dev (epochs x (c+1) np array): Accuracy history of dev data (if provided)
         """
-        logger.info(f'Fitting neural network with {self.num_features} features to {self.num_classes} classes with {self.reg} regularization and {self.num_hidden} hidden nodes')
+        logger.info(f'Fitting neural network with {self.num_features} features to {self.num_classes} classes with {self.reg} regularization {learning_rate} learning rate and {self.num_hidden}x{self.num_hidden_layers} hidden nodes')
         # Check for proper dimensions
         self.is_valid(train_data, train_labels)
         has_dev = dev_data is not None and dev_labels is not None
@@ -209,7 +223,7 @@ class n_layer_neural_network(util.classification_model):
                         # Error is fluctuating too much
                         self.err.set_code(1)
                         break
-                    if np.abs(cost_dev[-1] - cost_dev[-2]) < 1e-4:
+                    if np.abs(cost_dev[-1] - cost_dev[-2]) < 1e-4 and np.abs(cost_train[-1] - cost_train[-2]) < 1e-4:
                         # Loss stabilized
                         self.err.set_code(2, train_cost = cost_train[-1], train_acc = accuracy_train[-1][-1],dev_cost = cost_dev[-1], dev_acc = accuracy_dev[-1][-1])
                         break
@@ -373,17 +387,37 @@ class nn_error:
 
 # Testing function
 def main():
+    # # Gather data
+    # matrix, levels, _ = util.load_dataset(pooled=True, vectorizer=False)
+    # # Load regular model H10B100L0.05R0.005
+    # n, n_features = matrix.shape
+    # _, n_levels = levels.shape
+    # nn = two_layer_neural_network(n_features, n_hidden, n_levels, 0.005, verbose=True)
+    # nn.load_params('./neural_network_files/Regular_H10B100L0_05R0_005/')
+    # print('Prediction for entry 0: ',nn.predict_one_hot(matrix[0:1, :]))
+    # print('Prediction for entry 1000:', nn.predict_one_hot(matrix[1000:1001, :]))
+    # # Load BERT model H300B100L0.6R0
+    # matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
+    # n, n_features = matrix.shape
+    # _, n_levels = levels.shape
+    # nn = two_layer_neural_network(n_features, n_hidden, n_levels, 0.005, verbose=True)
+    # nn.load_params('./neural_network_files/Vectorized_H300B100L0_6R0/')
+    # print('Prediction for entry 0: ',nn.predict_one_hot(matrix[0:1, :]))
+    # print('Prediction for entry 1000:', nn.predict_one_hot(matrix[1000:1001, :]))
+
     # Gather data
     matrix = np.loadtxt('./neural_network_files/matrix.txt.gz')
     levels = np.loadtxt('./neural_network_files/levels.txt.gz')
     n, n_features = matrix.shape
     _, n_levels = levels.shape
     c = 0.6
-    train_data, train_levels, dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels, c)
+    train_data, train_levels, dev_data, dev_levels, test_data, test_levels = util.train_test_split(matrix, levels, c, subsample=False)
     num_class = [sum(levels[:,i]) for i in range(n_levels)]
+    num_class_train = np.sum(train_levels, axis=0)
+    num_class_dev = np.sum(dev_levels, axis=0)
+    num_class_test = np.sum(test_levels, axis=0)
     for i in range(n_levels):
-        print(f'Number of class {i}: {num_class[i]}')
-
+        print(f'Number of class {i}: train: {num_class_train[i]} \tdev: {num_class_dev[i]} \ttest: {num_class_test[i]} \ttotal: {num_class[i]}')
     # Train nn
     # nn = two_layer_neural_network(n_features, n_hidden, n_levels,reg=reg, verbose=True)
     nn = n_layer_neural_network(n_features, n_hidden, layers, n_levels, [util.sigmoid] * layers, [util.dsigmoid] * layers, reg, verbose=True)
@@ -391,7 +425,9 @@ def main():
         nn.load_params(header)
     cost_train, accuracy_train, cost_dev, accuracy_dev = nn.fit(train_data, train_levels, batch_size=batch_size, num_epochs=epochs, dev_data=dev_data, dev_labels=dev_levels,learning_rate=lr, var_lr = var_lr, print_epochs=True)
     print(nn.err)
+    print(f'Final training cost: {cost_train[-1]}, dev cost: {cost_dev[-1]}')
     print(f'Final training accuracy: {accuracy_train[-1,-1]}, dev accuracy: {accuracy_dev[-1,-1]}')
+    print('Test accuracies: ', nn.accuracy(nn.predict(test_data), test_levels))
     pred = nn.predict_one_hot(matrix)
     # Prediction matrix
     levels_all = util.load_dataset(pooled=False)[1]

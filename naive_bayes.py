@@ -90,6 +90,7 @@ class naive_bayes_model(util.classification_model):
             matrix_class = matrix[labels[:,i]==1, :]
             word_count = np.sum(matrix_class, axis=0)
             self.phix[i] = (1 + word_count) / (self.num_features + np.sum(matrix_class))
+            # print(f'Shape of phix {i}: {self.phix[i].shape}')
 
         self.phiy= np.mean(labels, axis=0)
         pred = self.predict(matrix)
@@ -142,6 +143,10 @@ def main():
     nb = naive_bayes_model(n_features, n_levels, verbose=True)
     print(nb.fit(train_data, train_levels))
     print(nb.accuracy(nb.predict(test_data), test_levels))
+
+    pred = nb.predict_one_hot(test_data)
+    print((pred.T @ test_levels).astype(int))
+
 
     # fit_model= fit_naive_bayes_model(train_data, train_levels)
     # nb_predict= predict_from_naive_bayes_model(fit_model, test_data)
